@@ -12,15 +12,11 @@
 #' Afterwards, the tiles are mosaiced to have the full extent in a single raster
 
 
-### Notes ----
-
-#' - Currently, two ways are provided to combine the rasters to single mosaics, these have to be merged
-
-
 ### Required datasets ----
 
-#' - a raster that holds the cells for the pixel based calculations
-#' - geolocated single tree polygons in tiles
+#' - a raster that holds the cells for the pixel based calculations and has information on where the ALS campaign 
+#'   actually acquired data
+#' - geolocated and tiled single tree polygons
 
 
 ### Required packages ----
@@ -41,7 +37,7 @@ reference_image <- rast("D:/10m_reference_image.tif")
 reference_image
 
 #' list of all single tree polygon files
-files <- list.files("D:/Einzelbaumpolygone 2017/Projected/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
+files <- list.files("D:/SIngle tree polygons 2017/Projected_UTM/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
 filenames <- substr(basename(files), 1 , nchar(basename(files))-5)
 
 #' function, that iterates through all polygons in list and calculates the coverage percentage per pixel
@@ -59,8 +55,7 @@ for (k in 1:length(files)) {
   
   #' crop reference image to polygon extents:
   reference_image_crop <- crop(reference_image, extent(polygon))
-  #mapview(raster(reference_image_crop))
-  
+
   #' split polygons for each tree class:
   polygon_per_class <- polygon %>% 
     mutate(TREE_CLASS= factor(TREE_CLASS, levels = unique(TREE_CLASS))) %>%
@@ -80,26 +75,20 @@ for (k in 1:length(files)) {
   #' combine all rasters in stack:
   raster_stack <- rast(raster_per_class)
   names(raster_stack) <- unique(polygon$TREE_CLASS)
-  #plot(raster_stack)
-  
+
   #' export tif files:
-  terra::writeRaster(x = raster_stack, filename = paste0("D:/Einzelbaumpolygone 2017/Cover Rasters/", filenames[[k]], "_coverage.tif"), overwrite = T)
+  terra::writeRaster(x = raster_stack, 
+                     filename = paste0("D:/Single tree polygons 2017/Cover Rasters 10m/", filenames[[k]], "_coverage.tif"), 
+                     overwrite = T)
   
-  #' clean up environment:
-  rm(poly)
-  rm(polygon)
-  rm(polygon_per_class)
-  rm(raster_per_class)
-  rm(raster_stack)
-  rm(reference_image_crop)
+  #' clean up environment after each iteration to avoid memory constraints:
+  rm(c(poly, polygon, polygon_per_class, raster_per_class, raster_stack, reference_image_crop))
 
 }
 
 
+
 ## 2. Mosaic the raster tiles ------------------------------------------------------------------------------------------
-
-
-
 
 
 #' load in list of rasters:
@@ -117,7 +106,6 @@ for (i in 1:length(raster_list)) {
 
 #' convert to a spatial raster collection:
 raster_sprc <- sprc(raster_list_ordered)
-raster_sprc
 
 #' make mosaic from raster collection:
 raster_mosaic <- mosaic(raster_sprc, fun = "sum")
@@ -127,56 +115,44 @@ raster_mosaic$decid[raster_mosaic$decid>=1] <- 1
 raster_mosaic$conif[raster_mosaic$conif>=1] <- 1
 raster_mosaic$deadw[raster_mosaic$deadw>=1] <- 1
 raster_mosaic$snag[raster_mosaic$snag>=1] <- 1
+
+#' look at the data:
 plot(raster_mosaic)
-raster_mosaic
 
-names(raster_mosaic) <- c("deciduous", "coniferous", "deadwood", "snag")
+#' change raster band names:
+names(raster_mosaic) <- c("coverage_deciduous", "coverage_coniferous", "coverage_deadwood", "coverage_snag")
 
-#' export tif files:
-writeRaster(x = raster_mosaic, filename = "D:/Einzelbaumpolygone 2017/Cover Rasters/Tree_type_coverage_mosaic.tif", overwrite = T)
-
-
+#' export raster as tif:
+writeRaster(x = raster_mosaic, filename = "Single tree polygons 2017/Cover Rasters/Mosaic/Coverage_tree_types.tif", overwrite = T)
 
 
 
+## 3. Clip the mosaic to locations, where data was available -----------------------------------------------------------
 
 
-
+#' load in the mosaiced raster which holds NA values for all empty cells:
 coverage_raster <- rast("D:/Single tree polygons 2017/Cover Rasters/Mosaic/Coverage_tree_types.tif")
-coverage_raster
-plot(coverage_raster)
 
-#' change NA values to 0:
+#' change NA values to 0, as the coverage is actually 0 and not NA:
 coverage_raster_0 <- subst(coverage_raster, NA, 0)
-plot(coverage_raster_0)
 
-#' make mask from reference raster:
-
-#' read in data:
+#' load in the reference raster representing pixels, where the ALS campaign actually acquired data:
 reference_image <- rast("D:/10m_reference_raster.tif") %>%
   project(y = crs(coverage_raster))
 
 #' change value range to meet masking requirements:
 reference_image[reference_image <= 0] <- NA
-plot(reference_image)
 
-
-#' mask the coverage raster:
+#' mask the coverage raster using the reference raster:
 coverage_raster_crop <- resample(coverage_raster_0, reference_image)
-coverage_raster_crop
 
 coverage_raster_masked <- mask(coverage_raster_crop, reference_image)
-coverage_raster_masked
+
+#' look at the generated data:
 plot(coverage_raster_masked)
 mapview(raster(coverage_raster_masked$deciduous))
 
-terra::writeRaster(x = coverage_raster_masked, filename = "D:/Single tree polygons 2017/Cover Rasters/Mosaic/Coverage_tree_types.tif", overwrite = T)
-
-
-
-
-
-
-
-
-
+#' export new raster:
+terra::writeRaster(x = coverage_raster_masked, 
+                   filename = "D:/Single tree polygons 2017/Cover Rasters/Mosaic/Coverage_tree_types.tif", 
+                   overwrite = T)
