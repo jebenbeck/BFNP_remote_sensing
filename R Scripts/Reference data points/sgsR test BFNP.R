@@ -1,58 +1,85 @@
-library(sgsR)
-library(terra)
-library(mapview)
-library(sf)
-library(dplyr)
+## Info ----------------------------------------------------------------------------------------------------------------
+
+
+#' Author: Jakob Rieser
+#' Last updated: 2023-02-15
+#' Status: Finished
+
+
+### Purpose of script ----
+
+#' Testing the sgsR package functionalities in a real environment in the Bavarian Forest National Park
+#' Therefore, the representation of various point and polygon datasets is tested based on a stratification based on ALS 
+#' metrics and land cover maps for the full national park scale
+
+
+### Required datasets ----
+
+#' various sample plots and areas 
+#' ALS metrics raster
+#' Land cover polygons
+
+
+### Required packages ----
+
+require(sgsR)
+require(terra)
+require(mapview)
+require(sf)
+require(dplyr)
 
 
 
-# 1 Import data --------------------------------------------------------------------------------------------------------
+## 1. Import data ------------------------------------------------------------------------------------------------------
 
 
-## The ALS metrics ----
+setwd("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park")
+
+
+### The ALS metrics ----
 
 ALS_metrics <- rast("F:/ALS_metrics_2017.tif")
 names(ALS_metrics)
 
 
-## The BFNP area ----
+### The BFNP area ----
 
-AOI_BFNP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP_Area_full.gpkg") %>% 
+AOI_BFNP <- st_read("BFNP_Area_full.gpkg") %>% 
   st_transform(crs = crs(ALS_metrics))
 
 
-## The habitat types polygons ----
+### The habitat types polygons ----
 
-habitat_types <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Habitat_Types_Land_Cover.shp") %>% 
+habitat_types <- st_read("Habitat_Types_Land_Cover.shp") %>% 
   st_transform(crs = crs(ALS_metrics))
 
 
-## The Reference points ----
+### Several different reference points ----
 
 #' load the bioklim inventory plots as points:
-inventory_points_bioklim <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2016.gpkg")
+inventory_points_bioklim <- st_read("Transects Bioclim/Bioklim_points_2016.gpkg")
 
 #' load the 800m inventory plots as points:
-inventory_points_800m <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_800x800.gpkg") %>% 
+inventory_points_800m <- st_read("Inventory/Inventory_points_800x800.gpkg") %>% 
   st_transform(crs = crs(ALS_metrics)) %>% 
   select("geom")
 
 #' load the 45 biodiv reference points:
-inventory_points_biodiv <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Biodiv_points.gpkg") %>% 
+inventory_points_biodiv <- st_read("Transects Bioclim/Biodiv_points.gpkg") %>% 
   st_transform(crs = crs(ALS_metrics))
 
 #' load the 100 inventory points of Hooman:
-inventory_points_100 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_100_2013.gpkg") %>% 
+inventory_points_100 <- st_read("Inventory/Inventory_points_100_2013.gpkg") %>% 
   st_transform(crs = crs(ALS_metrics))
 
 
 
-# 2 Preprocess data --------------------------------------------------------------------------------------------------------
+## 2. Preprocessing ----------------------------------------------------------------------------------------------------
 
 
-## The habitat polygons ----
+### The habitat polygons ----
 
-#' Filter, combine and subset the habitat types
+#' Filter, combine, rename and subset the habitat types
 habitat_types_filtered <- habitat_types %>%
   filter(grepl('Nadel|Totholz|Laub|Misch|Latsche', KLS_DEU)) %>% 
   mutate(TYPE = recode(KLS_ENG,
@@ -73,35 +100,39 @@ habitat_types_filtered <- habitat_types %>%
   select(TYPE) %>%
   filter(grepl("Coniferous|Deciduous|Mixed", TYPE))
 
-#' clip the habitat types to the extent of BFNP:
+#' clip to the extent of BFNP:
 habitat_types_NPBW <- st_intersection(habitat_types_filtered, AOI_BFNP)
 
-#' rasterize the habitat polygons:
+#' rasterize:
 habitat_types_NPBW_raster <- terra::rasterize(habitat_types_NPBW, ALS_metrics, field = "TYPE") %>%
   catalyze()
 
+#' rename the band
 names(habitat_types_NPBW_raster) <- "strata"
 unique(values(habitat_types_NPBW_raster))
 
 
 ## The ALS metrics ----
 
-#' Mask and subset the ALS raster stack
+#' Mask the ALS metrics with the forest habitats as derived from the land cover map:
 ALS_metrics_masked <- mask(ALS_metrics, habitat_types_NPBW_raster$strata)
-ALS_metrics_masked <- subset(ALS_metrics_masked, c(2, 3, 4), negate = T) #' select only relevant metrics
+
+#' subset to select only relevant metrics: 
+ALS_metrics_masked <- subset(ALS_metrics_masked, c(2, 3, 4), negate = T)
+
+#' rename the bands (metrics):
 names(ALS_metrics_masked) <- c("AGB", "Canopy height Mean", "Canopy height SD", "Penetration rate canopy", 
                                "Penetration rate regeneration", "Penetration rate understory", "LAI",
                                "Vegetation cover 2m",  "Vegetation cover 5m",  "Vegetation cover 10m")
-plot(ALS_metrics_masked$AGB)
 
 
 
-# 2 Stratification -----------------------------------------------------------------------------------------------------
+## 3. Stratification ---------------------------------------------------------------------------------------------------
 
 
-## K-Means Classification ----
+### K-Means Classification based on ALS metrics ----
 
-#' stratification based on k-means classification 5-strata: 
+#' stratification based on k-means classification with 5-strata: 
 stratified_ALS <- strat_kmeans(mraster = ALS_metrics_masked, 
                                nStrata = 3, 
                                iter = 1000, 
@@ -109,8 +140,11 @@ stratified_ALS <- strat_kmeans(mraster = ALS_metrics_masked,
                                plot = T) 
 plot(stratified_ALS)
 
-## Perform principal component analysis ----
 
+### Perform principal component analysis ----
+
+#' PCA with 3 compontents
+#' Just for testing, no further usage
 pcomp_ALS <- calculate_pcomp(mraster = ALS_metrics_masked,
                 nComp = 3,
                 plot = F,
@@ -119,10 +153,10 @@ plot(pcomp_ALS$raster)
 
 
 
-# 3 Representation -----------------------------------------------------------------------------------------------------------
+## 4. Calculate representation -----------------------------------------------------------------------------------------
 
 
-## Representation based on ALS data ----
+### Representation based on ALS data ----
 
 #' calculate the representation of the existing reference points based on the k-means classes of the ALS data
 
@@ -147,7 +181,7 @@ rep <- calculate_representation(sraster = stratified_ALS,
                          plot = T)
 
 
-## Representation based on the habitat map ----
+### Representation based on the habitat map ----
 
 #' first, the 800m inventory points:
 rep <- calculate_representation(sraster = habitat_types_NPBW_raster,
@@ -170,7 +204,8 @@ rep <- calculate_representation(sraster = habitat_types_NPBW_raster,
                                 plot = T)
 
 
-# 4 Calculate sample sizes -----------------------------------------------------------------------------------------------
+
+## 5. Calculate sample sizes -------------------------------------------------------------------------------------------
 
 
 #' sample size based on the ALS metrics: 
@@ -202,15 +237,14 @@ ss_habitat$plot
 
 
 
+## 6. Sub-sampling -------------------------------------------------------------------------------------------------------
 
 
-# 5 Sampling -------------------------------------------------------------------------------------------------------
+### Sub-sampling ----
 
 
-## Sub-sampling ----
-
-
-#' sub-sampling based on the 800 m inventory points and a given sample size:
+#' sub-sampling based on the 800 m inventory points and a given sample size. Hereby, the most representative points are 
+#' selected from the original dataset
 
 #' first, extract the metrics from the ALS raster data:
 inventory_points_metrics <- extract_metrics(mraster = ALS_metrics_masked, existing = inventory_points_800m)
@@ -219,25 +253,21 @@ inventory_points_metrics <- extract_metrics(mraster = ALS_metrics_masked, existi
 if (file.exists("C:/Users/jakob/OneDrive/BFNP/Data/Other data/sgs/subsample_800_64.gpkg")){
   inventory_subsample <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Other data/sgs/subsample_800_64.gpkg")
 } else {
-  inventory_subsample <- sample_existing(existing = inventory_points_metrics, # our existing sample
-                                         nSamp = 150, # the number of samples we want
-                                         #raster = ALS_metrics_masked, # include mraster metrics to guide sampling of existing
-                                         plot = TRUE, # plot
-                                         progress = T) #progress bar
+  inventory_subsample <- sample_existing(existing = inventory_points_metrics, #' the existing sample
+                                         nSamp = 150,                         #' the number of samples we want
+                                         #' optional: include mraster metrics to guide sampling of existing:
+                                         #raster = ALS_metrics_masked, 
+                                         plot = TRUE,                         #' plot
+                                         progress = T)                        #' add progress bar
   st_write(subsample, "C:/Users/jakob/OneDrive/BFNP/Data/Other data/sgs/subsample_800_64.gpkg", driver = "GPKG")
 }
 
-# Calculate representation again for subsample:
+#' look at the data
+mapview(inventory_subsample)
+
+
+### Calculate representation for sub-sample ----
+
 rep_sub <- calculate_representation(sraster = stratified_ALS,
                                 existing = inventory_subsample,
                                 plot = T)
-mapview(inventory_subsample)
-plot(ALS_metrics_masked$`Penetration rate canopy`)
-
-
-## Stratify sample points ----
-
-#' first, extract the metrics from the ALS raster data:
-inventory_points_metrics <- extract_metrics(mraster = ALS_metrics_masked, existing = inventory_points_800m)
-
-
