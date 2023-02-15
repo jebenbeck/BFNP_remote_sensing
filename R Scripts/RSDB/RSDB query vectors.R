@@ -14,7 +14,7 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 ### Get the Raster Data ----
 
 #' Select raster database:
-Areas_NPBW.db <- db$vectordb("Areas")
+Areas_NPBW.db <- db$vectordb("Test_single_tree_polygons")
 
 #' Get the polygons:
 Areas_NPBW.poly <- Areas_NPBW.db$getVectors()
