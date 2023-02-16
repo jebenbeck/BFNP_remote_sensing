@@ -1,4 +1,7 @@
-# Script for working with the RSDB instance of the NPBW
+# Script for working with the RSDB instance of the NPBW to process LiDAR data
+
+# Author: Paul Magdon
+# Date: 2022-05-03
 
 
 # Prepare your environment

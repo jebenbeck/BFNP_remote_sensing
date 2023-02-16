@@ -1,4 +1,3 @@
-#' load the required packages:
 library(RSDB)
 library(sf)
 library(raster)
