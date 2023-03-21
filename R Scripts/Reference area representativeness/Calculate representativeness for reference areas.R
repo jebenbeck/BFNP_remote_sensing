@@ -157,7 +157,7 @@ plot_fun <- function(table, title) {
     scale_y_continuous(expand = c(0,0),
                        limits = c(0,0.6), 
                        name = "Frequency") +
-    scale_fill_discrete(labels = c("Sample", "Raster")) +
+    scale_fill_discrete(labels = c("Sample", "Population")) +
     ggtitle(title) +
     theme_bw() +
     theme(panel.grid.minor = element_blank(),
