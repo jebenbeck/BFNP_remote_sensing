@@ -8,83 +8,119 @@ library(pbapply)
 library(ggplot2)
 
 
+## 1. Import and preprocess all datasets -------------------------------------------------------------------------------
 
-# 1 Import data --------------------------------------------------------------------------------------------------------
 
 
-#' The BFNP area:
-AOI_BFNP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP_Areas.gpkg", quiet = T)
+### The area of interest ----
 
-#' The ALS metrics:
+
+st_layers("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP divisions.gpkg")
+
+
+AOI_BFNP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP divisions.gpkg", 
+                    layer = "Expansion areas", quiet = F) %>% 
+  filter(grepl('1997|1970', Name)) 
+
+
+### The habitat types polygons ----
+
+
+Forest_areas <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Habitats LULC.gpkg",
+                        quiet = T) %>% 
+  filter(grepl('Nadel|Totholz|Laub|Misch|Latsche', Class.German)) %>% 
+  st_intersection(AOI_BFNP)
+
+
+### The ALS metrics ----
+
+
 ALS_metrics <- rast("E:/ALS_metrics_2017_prj.tif")
 
 ALS_metrics_subset <- ALS_metrics %>% 
   subset(subset = grep('BE_H_|BE_FHD|BE_PR|vegetation_coverage_05', 
                        x = names(ALS_metrics), ignore.case = T, value = T)) %>% 
-  mask(AOI_BFNP)
+  mask(Forest_areas)
 
-#' The tree type coverage raster:
-Tree_type_coverage <- rast("E:/Single tree polygons 2017/Cover Rasters/Mosaic/Coverage_tree_types.tif") %>% 
+
+### The tree type coverage raster ----
+
+
+Tree_type_coverage <- rast("E:/Single tree polygons 2017/Cover Rasters 10m/Mosaic/Coverage_tree_types.tif") %>% 
   resample (ALS_metrics_subset) %>% 
   subset(subset = "snag", negate = T) %>% 
-  mask (AOI_BFNP)
+  mask (Forest_areas)
 
 #' combine the TTC and ALS rasters:
 ALS_TTC_metrics <- c(ALS_metrics_subset, Tree_type_coverage)
 
 
-## The Reference points and polygons ----
+### The ground reference points and polygons ----
 
-#' load the bioklim inventory plots as points:
-Points_bioklim_2016 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2016_BFNP.gpkg", 
+
+# ---- Different Bioklim datasets ---- #
+
+#' Bioklim 2016 points:
+Points_bioklim_2016 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2016_BFNP.gpkg", 
                                     quiet = T) %>% 
   st_zm(drop = TRUE, what = "ZM")
 
-Points_bioklim_2006 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2006.gpkg", 
+#' Bioklim 2006 points:
+Points_bioklim_2006 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2006.gpkg", 
                               quiet = T) %>% 
   st_intersection(AOI_BFNP)
 
-Points_biodiv <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Biodiv_points.gpkg", 
+#' Biodiv points:
+Points_biodiv <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Biodiv_points.gpkg", 
                               quiet = T) %>% 
   st_intersection(AOI_BFNP)
+
+#' Bioklim transect polygons:
+Points_transect <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_transects_plots.gpkg",
+                           quiet = T) %>% 
+  st_transform(crs = crs(ALS_TTC_metrics)) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Square_ID", background = NA) %>% 
+  as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
+  st_as_sf()
+plot(Points_transect)
+
+
+# ---- Inventory points ---- #
 
 #' load the 800-m inventory points:
-Points_inventory_800 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_800x800.gpkg",
+Points_inventory_800 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_800x800.gpkg",
                                 quiet = T) %>% 
   select("geom") %>% 
   st_transform(crs = crs(ALS_TTC_metrics))
 
-#' load the bioklim transects polygons:
-Points_transect <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Transects_BIOKLIM.gpkg", quiet = T) %>% 
-  st_transform(crs = crs(ALS_TTC_metrics)) %>% 
-  terra::rasterize(y = ALS_TTC_metrics, field = "NR", background = NA) %>% 
-  as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
-  st_as_sf()
 
-#' load the HTO reference polygons:
-Points_HTO <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/HTO_reference_areas_combined.gpkg", quiet = T) %>% 
+# ---- Different reference and monitoring areas ---- #
+
+#' HTO reference polygons:
+Points_HTO <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/HTO_reference_areas_combined.gpkg", quiet = T) %>% 
   filter(Type_plot == "Plot") %>% 
   terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
-#' load the Large Scale Plot polygon:
-Points_LSP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Large Scale Plot/Plot 20ha/Plot_TB_20ha_ETRS_final_JTSK.shp", 
+#' Large Scale Plot monitoring polygon:
+Points_LSP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Large Scale Plot/Plot 20ha/Plot_TB_20ha_ETRS_final_JTSK.shp", 
                                    quiet = T) %>%
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
   terra::rasterize(y = ALS_TTC_metrics, field = "Id", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
-#' load in the Mittelsteighütte reference areas:
-Points_MSH <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Mittelsteighütte/Dauerbeobachtungsflächen.gpkg", 
+#' Mittelsteighütte monitoring polygon:
+Points_MSH <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Mittelsteighütte/Dauerbeobachtungsflächen.gpkg", 
                       quiet = T) %>%
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
   terra::rasterize(y = ALS_TTC_metrics, background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
-#' combine all sample plots to list:
+
+# ---- Combine all reference datasets in a list ---- #
 list_sample_pts <- list("Bioklim 2016" = Points_bioklim_2016, 
                         "Bioklim 2006" = Points_bioklim_2006, 
                         "Biodiv" = Points_biodiv, 
@@ -94,15 +130,15 @@ list_sample_pts <- list("Bioklim 2016" = Points_bioklim_2016,
 
 
 
-# 2 Stratify rasters -----------------------------------------------------------------------------------------------------
+## 2. K-means clistering -----------------------------------------------------------------------------------------------
 
 
-## K-Means Classification ----
 
-if (file.exists("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif") == T ) {
+#' only calculate when file does not already exist:
+if (file.exists("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif") == T ) {
   
   #' load stratified raster:
-  ALS_TTC_strata <- rast("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif")
+  ALS_TTC_strata <- rast("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif")
   
 } else {
   
@@ -114,18 +150,17 @@ if (file.exists("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS
                                  plot = T) 
   
   #' write strat raster to disk:
-  writeRaster(ALS_TTC_strata, "C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif")
+  writeRaster(ALS_TTC_strata, "C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif")
 
 }
 
 
 
-# 3 Calculate Representation -----------------------------------------------------------------------------------------------------------
+## 3. Calculate Representation -----------------------------------------------------------------------------------------
 
 
-## Representation based on ALS data ----
 
-#' calculate the representation of the existing reference points based on the k-means classes of the ALS data
+#' calculate the representation of the existing reference points based on the k-means classes of the ALS and TTS data
 
 #' make function iterating through all sets of points, that should be tested
 calc_rep <- function(i){
@@ -145,7 +180,7 @@ rep_total
 
 
 
-# 3 Visualize Representation -----------------------------------------------------------------------------------------------------------
+## 4. Visualisation ----------------------------------------------------------------------------------------------------------
 
 
 
@@ -166,7 +201,7 @@ plot_fun <- function(table, title) {
   
   ggsave(filename = paste0(title, ".png"),
          plot = plot_freq, device = "png",
-         path = "C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Repräsentanz/",
+         path = "C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/",
          width = 200, height = 150, units = "mm", dpi = 300)
   
   return(plot_freq)
