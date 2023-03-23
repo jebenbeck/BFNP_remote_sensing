@@ -8,14 +8,13 @@ library(pbapply)
 library(ggplot2)
 
 
+results_path <- "C:/Users/jakob/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/Reference area representativeness/Results/"
+
 ## 1. Import and preprocess all datasets -------------------------------------------------------------------------------
 
 
 
 ### The area of interest ----
-
-
-st_layers("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP divisions.gpkg")
 
 
 AOI_BFNP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP divisions.gpkg", 
@@ -130,15 +129,19 @@ list_sample_pts <- list("Bioklim 2016" = Points_bioklim_2016,
 
 
 
-## 2. K-means clistering -----------------------------------------------------------------------------------------------
+## 2. K-means clustering -----------------------------------------------------------------------------------------------
 
 
+
+
+
+### K-means cluster ----
 
 #' only calculate when file does not already exist:
-if (file.exists("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif") == T ) {
+if (file.exists(paste0(results_path,"ALS_TTC_strata.tif"))) {
   
   #' load stratified raster:
-  ALS_TTC_strata <- rast("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif")
+  ALS_TTC_strata <- rast(paste0(results_path,"ALS_TTC_strata.tif"))
   
 } else {
   
@@ -150,9 +153,36 @@ if (file.exists("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_
                                  plot = T) 
   
   #' write strat raster to disk:
-  writeRaster(ALS_TTC_strata, "C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_TTC_strata.tif")
+  writeRaster(ALS_TTC_strata, paste0(results_path,"ALS_TTC_strata.tif"))
 
 }
+
+
+### Reclassify the raster values ----
+
+#' reclassification is performed for better visualization
+#' make matrix to use for the reclassification
+
+m <- c(0.5, 1.5, 9,
+       1.5, 2.5, 2,
+       2.5, 3.5, 3,
+       3.5, 4.5, 4, 
+       4.5, 5.5, 10, 
+       5.5, 6.5, 6, 
+       6.5, 7.5, 8, 
+       7.5, 8.5, 1, 
+       8.5, 9.5, 5, 
+       9.5, 10.5, 7)
+
+rclmat <- matrix(m, ncol = 3, byrow=TRUE)
+
+ALS_TTC_strata_sorted <- classify(ALS_TTC_strata, rclmat)
+
+
+#' write strat raster to disk:
+writeRaster(ALS_TTC_strata_sorted, 
+            paste0(results_path, "ALS_TTC_strata_edit.tif"), 
+            overwrite = T)
 
 
 
@@ -164,7 +194,7 @@ if (file.exists("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/ALS_
 
 #' make function iterating through all sets of points, that should be tested
 calc_rep <- function(i){
-  return(calculate_representation(sraster = ALS_TTC_strata, 
+  return(calculate_representation(sraster = ALS_TTC_strata_sorted, 
                                   existing = list_sample_pts[[i]]) %>%
            mutate(sample = names(list_sample_pts)[[i]])) 
 }
@@ -201,8 +231,8 @@ plot_fun <- function(table, title) {
   
   ggsave(filename = paste0(title, ".png"),
          plot = plot_freq, device = "png",
-         path = "C:/Users/jakob/OneDrive/BFNP/Data/Other data/Repräsentanz/",
-         width = 200, height = 150, units = "mm", dpi = 300)
+         path = results_path,
+         width = 200, height = 100, units = "mm", dpi = 300)
   
   return(plot_freq)
 }
