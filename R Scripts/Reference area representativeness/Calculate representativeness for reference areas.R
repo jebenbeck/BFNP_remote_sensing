@@ -7,7 +7,6 @@ library(tidyr)
 library(pbapply)
 library(ggplot2)
 
-
 results_path <- "C:/Users/Rieser/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/Reference area representativeness/Results/"
 
 ## 1. Import and preprocess all datasets -------------------------------------------------------------------------------
@@ -27,7 +26,7 @@ AOI_BFNP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Fores
 
 Forest_areas <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Habitats LULC.gpkg",
                         quiet = T) %>% 
-  filter(grepl('Nadel|Totholz|Laub|Misch|Latsche', Class.German)) %>% 
+  filter(grepl('Nadel|Totholz|Laub|Misch|Latsche|Ä-koton|Kahl', Class.German)) %>% 
   st_intersection(AOI_BFNP)
 
 
@@ -80,7 +79,7 @@ Points_transect <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavaria
                            quiet = T) %>% 
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
   st_intersection(Forest_areas) %>% 
-  terra::rasterize(y = ALS_TTC_metrics, field = "Square_ID", background = NA) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Square_ID", fun = "max", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
@@ -100,14 +99,14 @@ Points_inventory_800 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Ba
 #' all HTO reference polygons:
 Points_HTO <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/HTO reference areas V2.gpkg", quiet = T) %>% 
   filter(Type_plot == "Plot") %>% 
-  terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", background = NA) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", fun = "max", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
 #' all 2023 reference polygons:
 Points_HTO_2023 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/HTO reference areas V2.gpkg", quiet = T) %>% 
   filter(Type_plot == "Plot", Recorded_2023 == "TRUE") %>% 
-  terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", background = NA) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", fun = "max", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
@@ -116,7 +115,7 @@ Points_LSP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoc
                                    quiet = T) %>%
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
   st_intersection(Forest_areas) %>% 
-  terra::rasterize(y = ALS_TTC_metrics, field = "Id", background = NA) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Id", fun = "max", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
@@ -124,7 +123,7 @@ Points_LSP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoc
 Points_MSH <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Mittelsteighütte/Dauerbeobachtungsflächen.gpkg", 
                       quiet = T) %>%
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
-  terra::rasterize(y = ALS_TTC_metrics, background = NA) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, fun = "max", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
@@ -146,10 +145,10 @@ list_sample_pts <- list(
 
 
 #' only calculate when file does not already exist:
-if (file.exists(paste0(results_path,"ALS_TTC_strata_sorted.tif"))) {
+if (file.exists(paste0(results_path,"ALS_TTC_strata.tif"))) {
   
   #' load stratified raster:
-  ALS_TTC_strata_sorted <- rast(paste0(results_path,"ALS_TTC_strata_sorted.tif"))
+  ALS_TTC_strata <- rast(paste0(results_path,"ALS_TTC_strata.tif"))
   
 } else {
   
@@ -162,19 +161,31 @@ if (file.exists(paste0(results_path,"ALS_TTC_strata_sorted.tif"))) {
   
   #' write strat raster to disk:
   writeRaster(ALS_TTC_strata, paste0(results_path,"ALS_TTC_strata.tif"))
+
+}
+
+
+
+#' only calculate when file does not already exist:
+if (file.exists(paste0(results_path,"ALS_TTC_strata_sorted.tif"))) {
+  
+  #' load stratified raster:
+  ALS_TTC_strata_sorted <- rast(paste0(results_path,"ALS_TTC_strata_sorted.tif"))
+  
+} else {
   
   #' reclassification is performed for better visualization
   #' make matrix to use for the reclassification
-  m <- c(0.5, 1.5, 9,
-         1.5, 2.5, 2,
-         2.5, 3.5, 3,
-         3.5, 4.5, 4, 
-         4.5, 5.5, 10, 
-         5.5, 6.5, 6, 
-         6.5, 7.5, 8, 
-         7.5, 8.5, 1, 
-         8.5, 9.5, 5, 
-         9.5, 10.5, 7)
+  m <- c(0.5, 1.5, 2,
+         1.5, 2.5, 8,
+         2.5, 3.5, 10,
+         3.5, 4.5, 6, 
+         4.5, 5.5, 5, 
+         5.5, 6.5, 9, 
+         6.5, 7.5, 4, 
+         7.5, 8.5, 3, 
+         8.5, 9.5, 7, 
+         9.5, 10.5, 1)
   
   rclmat <- matrix(m, ncol = 3, byrow=TRUE)
   
@@ -184,8 +195,10 @@ if (file.exists(paste0(results_path,"ALS_TTC_strata_sorted.tif"))) {
   writeRaster(ALS_TTC_strata_sorted, 
               paste0(results_path, "ALS_TTC_strata_sorted.tif"), 
               overwrite = T)
+  
 }
 
+plot(ALS_TTC_strata)
 plot(ALS_TTC_strata_sorted)
 
 
