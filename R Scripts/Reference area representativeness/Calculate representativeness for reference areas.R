@@ -8,7 +8,7 @@ library(pbapply)
 library(ggplot2)
 
 
-results_path <- "C:/Users/jakob/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/Reference area representativeness/Results/"
+results_path <- "C:/Users/Rieser/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/Reference area representativeness/Results/"
 
 ## 1. Import and preprocess all datasets -------------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ results_path <- "C:/Users/jakob/OneDrive/BFNP/Projects/Forest Ecosystem Monitori
 ### The area of interest ----
 
 
-AOI_BFNP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP divisions.gpkg", 
+AOI_BFNP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/BFNP divisions.gpkg", 
                     layer = "Expansion areas", quiet = F) %>% 
   filter(grepl('1997|1970', Name)) 
 
@@ -25,7 +25,7 @@ AOI_BFNP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest
 ### The habitat types polygons ----
 
 
-Forest_areas <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Habitats LULC.gpkg",
+Forest_areas <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Habitats LULC.gpkg",
                         quiet = T) %>% 
   filter(grepl('Nadel|Totholz|Laub|Misch|Latsche', Class.German)) %>% 
   st_intersection(AOI_BFNP)
@@ -60,58 +60,68 @@ ALS_TTC_metrics <- c(ALS_metrics_subset, Tree_type_coverage)
 # ---- Different Bioklim datasets ---- #
 
 #' Bioklim 2016 points:
-Points_bioklim_2016 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2016_BFNP.gpkg", 
+Points_bioklim_2016 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2016_BFNP.gpkg", 
                                     quiet = T) %>% 
-  st_zm(drop = TRUE, what = "ZM")
+  st_zm(drop = TRUE, what = "ZM") %>% 
+  st_intersection(Forest_areas)
 
 #' Bioklim 2006 points:
-Points_bioklim_2006 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2006.gpkg", 
-                              quiet = T) %>% 
-  st_intersection(AOI_BFNP)
+#Points_bioklim_2006 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2006.gpkg", 
+#                              quiet = T) %>% 
+#  st_intersection(AOI_BFNP)
 
 #' Biodiv points:
-Points_biodiv <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Biodiv_points.gpkg", 
+Points_biodiv <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Biodiv_points.gpkg", 
                               quiet = T) %>% 
-  st_intersection(AOI_BFNP)
+  st_intersection(Forest_areas)
 
 #' Bioklim transect polygons:
-Points_transect <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_transects_plots.gpkg",
+Points_transect <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_transects_plots.gpkg",
                            quiet = T) %>% 
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
+  st_intersection(Forest_areas) %>% 
   terra::rasterize(y = ALS_TTC_metrics, field = "Square_ID", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
-plot(Points_transect)
 
 
 # ---- Inventory points ---- #
 
 #' load the 800-m inventory points:
-Points_inventory_800 <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_800x800.gpkg",
+Points_inventory_800 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_800x800.gpkg",
                                 quiet = T) %>% 
   select("geom") %>% 
-  st_transform(crs = crs(ALS_TTC_metrics))
+  st_transform(crs = crs(ALS_TTC_metrics)) %>% 
+  st_intersection(Forest_areas)
 
 
 # ---- Different reference and monitoring areas ---- #
 
-#' HTO reference polygons:
-Points_HTO <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/HTO_reference_areas_combined.gpkg", quiet = T) %>% 
+#' all HTO reference polygons:
+Points_HTO <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/HTO reference areas V2.gpkg", quiet = T) %>% 
   filter(Type_plot == "Plot") %>% 
   terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
+#' all 2023 reference polygons:
+Points_HTO_2023 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/HTO reference areas V2.gpkg", quiet = T) %>% 
+  filter(Type_plot == "Plot", Recorded_2023 == "TRUE") %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Type_plot", background = NA) %>% 
+  as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
+  st_as_sf()
+
 #' Large Scale Plot monitoring polygon:
-Points_LSP <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Large Scale Plot/Plot 20ha/Plot_TB_20ha_ETRS_final_JTSK.shp", 
+Points_LSP <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Large Scale Plot/Plot 20ha/Plot_TB_20ha_ETRS_final_JTSK.shp", 
                                    quiet = T) %>%
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
+  st_intersection(Forest_areas) %>% 
   terra::rasterize(y = ALS_TTC_metrics, field = "Id", background = NA) %>% 
   as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
   st_as_sf()
 
 #' Mittelsteighütte monitoring polygon:
-Points_MSH <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Mittelsteighütte/Dauerbeobachtungsflächen.gpkg", 
+Points_MSH <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Other data/Messflugwoche 2022/Mittelsteighütte/Dauerbeobachtungsflächen.gpkg", 
                       quiet = T) %>%
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
   terra::rasterize(y = ALS_TTC_metrics, background = NA) %>% 
@@ -120,12 +130,14 @@ Points_MSH <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Other data/Messflugwoch
 
 
 # ---- Combine all reference datasets in a list ---- #
-list_sample_pts <- list("Bioklim 2016" = Points_bioklim_2016, 
-                        "Bioklim 2006" = Points_bioklim_2006, 
-                        "Biodiv" = Points_biodiv, 
-                        "Inventory 800m" = Points_inventory_800, 
-                        "Reference areas" = rbind(Points_HTO, Points_LSP, Points_MSH), 
-                        "Bioklim transects" = Points_transect)
+list_sample_pts <- list(
+  "Bioklim transects" = Points_transect,
+  "Bioklim plots 2016" = Points_bioklim_2016,
+  "Biodiv plots" = Points_biodiv, 
+  "Inventory plots 800m" = Points_inventory_800,
+  "Reference areas all" = rbind(Points_HTO, Points_LSP, Points_MSH),
+  "Reference areas 2023" = Points_HTO_2023)
+
 
 
 
@@ -133,15 +145,11 @@ list_sample_pts <- list("Bioklim 2016" = Points_bioklim_2016,
 
 
 
-
-
-### K-means cluster ----
-
 #' only calculate when file does not already exist:
-if (file.exists(paste0(results_path,"ALS_TTC_strata.tif"))) {
+if (file.exists(paste0(results_path,"ALS_TTC_strata_sorted.tif"))) {
   
   #' load stratified raster:
-  ALS_TTC_strata <- rast(paste0(results_path,"ALS_TTC_strata.tif"))
+  ALS_TTC_strata_sorted <- rast(paste0(results_path,"ALS_TTC_strata_sorted.tif"))
   
 } else {
   
@@ -154,35 +162,32 @@ if (file.exists(paste0(results_path,"ALS_TTC_strata.tif"))) {
   
   #' write strat raster to disk:
   writeRaster(ALS_TTC_strata, paste0(results_path,"ALS_TTC_strata.tif"))
-
+  
+  #' reclassification is performed for better visualization
+  #' make matrix to use for the reclassification
+  m <- c(0.5, 1.5, 9,
+         1.5, 2.5, 2,
+         2.5, 3.5, 3,
+         3.5, 4.5, 4, 
+         4.5, 5.5, 10, 
+         5.5, 6.5, 6, 
+         6.5, 7.5, 8, 
+         7.5, 8.5, 1, 
+         8.5, 9.5, 5, 
+         9.5, 10.5, 7)
+  
+  rclmat <- matrix(m, ncol = 3, byrow=TRUE)
+  
+  ALS_TTC_strata_sorted <- classify(ALS_TTC_strata, rclmat)
+  
+  #' write strat raster to disk:
+  writeRaster(ALS_TTC_strata_sorted, 
+              paste0(results_path, "ALS_TTC_strata_sorted.tif"), 
+              overwrite = T)
 }
 
+plot(ALS_TTC_strata_sorted)
 
-### Reclassify the raster values ----
-
-#' reclassification is performed for better visualization
-#' make matrix to use for the reclassification
-
-m <- c(0.5, 1.5, 9,
-       1.5, 2.5, 2,
-       2.5, 3.5, 3,
-       3.5, 4.5, 4, 
-       4.5, 5.5, 10, 
-       5.5, 6.5, 6, 
-       6.5, 7.5, 8, 
-       7.5, 8.5, 1, 
-       8.5, 9.5, 5, 
-       9.5, 10.5, 7)
-
-rclmat <- matrix(m, ncol = 3, byrow=TRUE)
-
-ALS_TTC_strata_sorted <- classify(ALS_TTC_strata, rclmat)
-
-
-#' write strat raster to disk:
-writeRaster(ALS_TTC_strata_sorted, 
-            paste0(results_path, "ALS_TTC_strata_edit.tif"), 
-            overwrite = T)
 
 
 
