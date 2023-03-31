@@ -33,7 +33,7 @@ Forest_areas <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian F
 ### The ALS metrics ----
 
 
-ALS_metrics <- rast("E:/ALS_metrics_2017_prj.tif")
+ALS_metrics <- rast("F:/ALS_metrics_2017_prj.tif")
 
 ALS_metrics_subset <- ALS_metrics %>% 
   subset(subset = grep('BE_H_|BE_FHD|BE_PR|vegetation_coverage_05', 
@@ -44,7 +44,7 @@ ALS_metrics_subset <- ALS_metrics %>%
 ### The tree type coverage raster ----
 
 
-Tree_type_coverage <- rast("E:/Single tree polygons 2017/Cover Rasters 10m/Mosaic/Coverage_tree_types.tif") %>% 
+Tree_type_coverage <- rast("F:/Single tree polygons 2017/Cover Rasters 10m/Mosaic/Coverage_tree_types.tif") %>% 
   resample (ALS_metrics_subset) %>% 
   subset(subset = "snag", negate = T) %>% 
   mask (Forest_areas)
@@ -62,6 +62,10 @@ ALS_TTC_metrics <- c(ALS_metrics_subset, Tree_type_coverage)
 Points_bioklim_2016 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_points_2016_BFNP.gpkg", 
                                     quiet = T) %>% 
   st_zm(drop = TRUE, what = "ZM") %>% 
+  st_buffer(dist = 12.62) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "Plot", fun = "max", background = NA) %>% 
+  as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
+  st_as_sf() %>% 
   st_intersection(Forest_areas)
 
 #' Bioklim 2006 points:
@@ -71,8 +75,15 @@ Points_bioklim_2016 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bav
 
 #' Biodiv points:
 Points_biodiv <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Biodiv_points.gpkg", 
-                              quiet = T) %>% 
+                              quiet = T) %>%
+  st_buffer(dist = 12.62) %>% 
+  st_intersection(Forest_areas) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "name", fun = "max", background = NA) %>% 
+  as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
+  st_as_sf() %>% 
   st_intersection(Forest_areas)
+  
+mapview(Points_biodiv)
 
 #' Bioklim transect polygons:
 Points_transect <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Transects Bioclim/Bioklim_transects_plots.gpkg",
@@ -89,9 +100,14 @@ Points_transect <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavaria
 #' load the 800-m inventory points:
 Points_inventory_800 <- st_read("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/Inventory/Inventory_points_800x800.gpkg",
                                 quiet = T) %>% 
-  select("geom") %>% 
+  #select("geom") %>% 
   st_transform(crs = crs(ALS_TTC_metrics)) %>% 
+  st_buffer(dist = 12.62) %>% 
+  terra::rasterize(y = ALS_TTC_metrics, field = "KOORD", fun = "max", background = NA) %>% 
+  as.points(values=F, na.rm=TRUE, na.all=FALSE) %>% 
+  st_as_sf() %>% 
   st_intersection(Forest_areas)
+mapview(Points_inventory_800)
 
 
 # ---- Different reference and monitoring areas ---- #
@@ -144,6 +160,9 @@ list_sample_pts <- list(
 
 
 
+### Perform the k-means cluster ----
+
+
 #' only calculate when file does not already exist:
 if (file.exists(paste0(results_path,"ALS_TTC_strata.tif"))) {
   
@@ -164,6 +183,8 @@ if (file.exists(paste0(results_path,"ALS_TTC_strata.tif"))) {
 
 }
 
+
+### Reclassify the cluster results ----
 
 
 #' only calculate when file does not already exist:
