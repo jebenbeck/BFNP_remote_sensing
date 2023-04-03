@@ -2,12 +2,13 @@ library(RSDB)
 library(sf)
 library(raster)
 library(terra)
+library(mapview)
 
 
 # ---- Connect to RSDB server ---- #
 
 #' Provide the login-credentials in an local R file on your computer or via an object (format: "username:password")
-source("C:/Users/Rieser/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/RSDB/RSDB credentials.R")
+source("C:/Users/jakob/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/RSDB/RSDB credentials.R")
 
 #' Connect to the server
 db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials) 
@@ -48,11 +49,11 @@ terra::writeRaster(ALS_metrics_prj.rast, "F:/ALS_metrics_2017.tif", overwrite = 
 
 
 #' Select vector database:
-Areas_NPBW.db <- db$vectordb("Test_single_tree_polygons")
+Areas_NPBW.db <- db$vectordb("Areas")
 
 #' Get the polygons:
 Areas_NPBW.poly <- Areas_NPBW.db$getVectors()
 
 #' look at data:
 Areas_NPBW.poly
-plot(Areas_NPBW.poly)
+mapview(Areas_NPBW.poly)
