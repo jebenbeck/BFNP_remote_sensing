@@ -60,7 +60,7 @@ foreach(i = 1:length(ST_files_list), .packages = c("sf", "tidyverse", "units")) 
   ST_file <- ST_files_list[[i]]
   
   #' parse filename:
-  filename <- basename(ST_file)
+  filename <- tools::file_path_sans_ext(basename(ST_file))
   
   #' read in the polygons:
   ST_polygons <- read_sf(ST_file, as_tibble = F, quiet = T) #%>% 
@@ -111,50 +111,15 @@ foreach(i = 1:length(ST_files_list), .packages = c("sf", "tidyverse", "units")) 
       .after = CROWN_VOLUME) 
   
   #' export as gpkg:
-  st_write(ST_polygons_edit, dsn = paste0(outdir, filename), driver = "GPKG", append = F)
+  st_write(ST_polygons_edit, dsn = paste0(outdir, filename, ".gpkg"), driver = "GPKG", append = F)
   
+  #' export as csv:
+  write.csv2(ST_polygons_edit, file = paste0(outdir, "Tables/", filename, ".csv"))
+  
+  #' remove data from memory to save space:
   rm(ST_polygons)
   rm(ST_polygons_edit)
 
 }
 
 stopCluster(cl)
-
-
-
-#' convert to excel
-
-
-
-ST_gpkg_list <- list.files(outdir, pattern = ".*.gpkg$", recursive = T, full.names = TRUE)
-
-
-#' Set up the parallel computation: 
-cl <- makeCluster(no_cores, type = "PSOCK")
-registerDoParallel(cl)
-
-foreach(i = 1:length(ST_gpkg_list), .packages = c("sf", "writexl")) %dopar% {
-  
-  #' read polygons
-  ST_file <- read_sf(ST_gpkg_list[[i]], quiet = T)
-  
-  #' set file name:
-  filename <- tools::file_path_sans_ext(basename(ST_gpkg_list[[i]])) 
-  
-  #' export as xlsx:
-  writexl::write_xlsx(ST_file, path = paste0(outdir, "Tables/", filename, ".xlsx"), col_names = T)
-  
-  rm(ST_file)
-}
-
-stopCluster(cl)
-
-
-
-paste0(outdir, "Tables/", "test", ".xlsx")
-
-
-
-
-
-
