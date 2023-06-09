@@ -40,7 +40,7 @@ outdir <- "F:/Single tree polygons 2017/Volume/"
 
 
 
-## 1. Processing -------------------------------------------------------------------------------------------------------
+## 1. Calculate single tree metrics ------------------------------------------------------------------------------------
 
 
 #' list of all polygons:
@@ -123,3 +123,82 @@ foreach(i = 1:length(ST_files_list), .packages = c("sf", "tidyverse", "units")) 
 }
 
 stopCluster(cl)
+
+
+
+
+## 2. Rasterize metrics ------------------------------------------------------------------------------------------------
+
+
+
+#' load a reference image, that holds the raster cells the calculatios will be based on
+reference_image <- rast("D:/10m_reference_image.tif")
+reference_image
+
+#' list of all single tree polygon files
+files <- list.files("D:/SIngle tree polygons 2017/Projected_UTM/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
+filenames <- substr(basename(files), 1 , nchar(basename(files))-5)
+
+#' function, that iterates through all polygons in list and calculates the coverage percentage per pixel
+
+for (k in 1:length(files)) {
+  
+  #' read in and preprocess polygons:
+  polygon <- read_sf(files[[k]], quiet = T) %>%     #' read in polygons
+    st_transform(crs = crs(reference_image)) %>%    #' transform coordinate system to match reference raster
+    mutate(VALID = st_is_valid(.)) %>%              #' check individual polygons, if valid
+    filter(VALID == T)                              #' remove invalid polygons
+  
+  #' check for invalid polygons:
+  table(polygon$VALID, useNA = "always")
+  
+  #' crop reference image to polygon extents:
+  reference_image_crop <- crop(reference_image, extent(polygon))
+  
+  #' split polygons for each tree class:
+  polygon_per_class <- polygon %>% 
+    mutate(TREE_CLASS= factor(TREE_CLASS, levels = unique(TREE_CLASS))) %>%
+    group_by(TREE_CLASS) %>% 
+    group_split(.keep = T) %>% 
+    setNames(unique(polygon$TREE_CLASS))
+  
+  #' rasterize the polygons for each tree class to get the coverage percentage:
+  
+  raster_per_class <- list()
+  
+  for (i in 1:length(polygon_per_class)) {
+    poly <- polygon_per_class[[i]]
+    raster_per_class[[i]] <- terra::rasterize(x = poly, y = reference_image_crop, cover = T)
+  }
+  
+  #' combine all rasters in stack:
+  raster_stack <- rast(raster_per_class)
+  names(raster_stack) <- unique(polygon$TREE_CLASS)
+  
+  #' export tif files:
+  terra::writeRaster(x = raster_stack, 
+                     filename = paste0("D:/Single tree polygons 2017/Cover Rasters 10m/", filenames[[k]], "_coverage.tif"), 
+                     overwrite = T)
+  
+  #' clean up environment after each iteration to avoid memory constraints:
+  rm(c(poly, polygon, polygon_per_class, raster_per_class, raster_stack, reference_image_crop))
+  
+}
+
+
+
+
+## 3. Mosaic rasterized metrics ----------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -3,6 +3,8 @@ library(sf)
 library(raster)
 library(terra)
 library(mapview)
+library(lidR)
+
 
 
 # ---- Connect to RSDB server ---- #
@@ -21,16 +23,15 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 # ---- Get raster data ---- #
 
 #' Select raster database:
-ALS_metrics.db <- db$rasterdb("LiDAR_metrics_2017_10m")
+ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2017-06_10m")
 
 #' define AOI (can be any spatial object)
 #' in this case, it is the full extent of the data
-AOI <- ALS_metrics_2017$extent
+AOI <- ALS_metrics.db$extent
 
 #' query rasterstack of ALS Metrics: 
-ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI)
+ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 15, 36))
 plot(ALS_metrics.raster)
-
 
 # ---- Postprocessing ---- #
 
@@ -41,7 +42,7 @@ ALS_metrics_prj.raster <- projectRaster(from = ALS_metrics.raster, crs = "EPSG:2
 ALS_metrics_prj.rast <- rast(ALS_metrics_prj.raster)
 
 #' export raster stack to disk:
-terra::writeRaster(ALS_metrics_prj.rast, "F:/ALS_metrics_2017.tif", overwrite = T)
+terra::writeRaster(ALS_metrics_prj.rast, "G:/ALS_metrics_2017_10m.tif", overwrite = T)
 
 
 
@@ -57,3 +58,45 @@ Areas_NPBW.poly <- Areas_NPBW.db$getVectors()
 #' look at data:
 Areas_NPBW.poly
 mapview(Areas_NPBW.poly)
+
+
+
+## 2. Query pointcloud data --------------------------------------------------------------------------------------------
+
+
+#' Queries point cloud data in large extents by splitting them into 1ha tiles
+
+
+#' read AOI:
+HTO_test <- read_sf("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/HTO_test_areas.gpkg")
+
+# Select a ALS acquisition
+ALS_2017.db <- db$pointcloud('ALS_2017-06')
+
+#' tiling the AOI into 1ha tiles:
+HTO_test_tiles.poly <- st_make_grid(HTO_test, 100) %>% 
+  st_as_sf()
+
+
+# Querry the points
+
+#' get the extent of each tile as the AOI:
+AOI <- extent(HTO_test_tiles_poly[20,])
+
+#' querry the points:
+ALS_2017.points <- ALS_2017.db$points(ext=AOI)
+head(ALS_2017.points)
+
+#' redefine ScanAngleRank
+ALS_2017.points$ScanAngleRank <- 0
+
+#' convert dataframe to LAS:
+ALS_2017.las <- RSDB::as.LAS(ALS_2017.points, proj4string = ALS_2017.db$proj4)
+
+#' change the projection:
+projection(ALS_2017.las)<- "EPSG:32632"
+
+#' write to disk:
+writeLAS(ALS_2017.las, "F:/ALS_2017.las")
+
+
