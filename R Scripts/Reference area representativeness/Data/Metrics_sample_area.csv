@@ -1,0 +1,11 @@
+Gebiet,Baumart,Anzahl Inventurpunkte,,Holzvorrat je ha,,,
+,,Gesamt,Stichprobe,Durchschnitt,Varianz Durchschnitt,Standardfehler,Standardfehler
+Falkenstein-Rachel-Gebiet,Nadelholz,2699,173,297.9011555,16.64099447,0.055860792,5.59%
+Falkenstein-Rachel-Gebiet,Laubholz,2699,173,85.04682046,10.02665749,0.117895736,11.79%
+Rachel-Lusen-Gebiet,Nadelholz,3109,199,229.922111,16.79534645,0.073047983,7.30%
+Rachel-Lusen-Gebiet,Laubholz,3109,199,95.83065302,8.771953874,0.091535992,9.15%
+Gesamtgebiet,Nadelholz,5808,372,261.5122352,11.8587593,0.045346862,4.53%
+Gesamtgebiet,Laubholz,5808,372,90.81936444,6.615047148,0.072837409,7.28%
+Falkenstein-Rachel-Gebiet,Gesamt,2699,173,382.947976,15.89380809,0.041503831,4.15%
+Rachel-Lusen-Gebiet,Gesamt,3109,199,325.752764,17.80461251,0.054656827,5.47%
+Gesamtgebiet,Gesamt,5808,372,352.3315996,12.05764227,0.034222427,3.42%

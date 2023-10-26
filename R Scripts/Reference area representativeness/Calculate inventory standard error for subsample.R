@@ -187,28 +187,7 @@ Metrics_sample_area
 write.csv(Metrics_sample_area, "C:/Users/Rieser/OneDrive/BFNP/Data/Metrics_sample_area.csv") 
 
 
-# Total volume per strata ----
-
-#' 
-#' #' Total volume per area:
-#' total_mean_volume_coniferous_area <- data.frame(Area = c("RLG", "FRG"),
-#'                                       Tree_type = "Coniferous",
-#'                                       sum_volume = c(3109 * 229.922111, 2699 * 297.9011555),
-#'                                       var_volume = c(3109 * 16.79534645, 2699 * 16.64099447)
-#'                                       )
-#' 
-#' total_mean_volume_deciduous_area <- data.frame(Area = c("RLG", "FRG"),
-#'                                      Tree_type = "Deciduous",
-#'                                      sum_volume = c(3109*95.83065302, 2699*85.04682046),
-#'                                      var_volume = c(3109*8.771953874, 2699*10.02665749)
-#'                                      )
-#' 
-#' total_mean__var_volume_area <- rbind(total_mean_volume_coniferous_area, total_mean_volume_deciduous_area)
-#' total_mean__var_volume_area$SE <- total_mean__var_volume_area$var_volume/total_mean__var_volume_area$sum_volume
-#' total_mean__var_volume_area
-#' #' -> redundant, same info as in metrics_sample_area 
-
-#' Metrics sample Grundgesamtheit ----
+# Metrics sample Grundgesamtheit ----
 
 #' calculate total mean volume:
 total_mean_volume_coniferous <- (1/5808)*(2699*297.9011555 + 3109*229.922111)
