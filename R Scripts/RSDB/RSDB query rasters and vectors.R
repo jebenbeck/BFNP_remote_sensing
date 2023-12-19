@@ -16,7 +16,6 @@ source("C:/Users/jakob/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scri
 db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials) 
 
 
-
 ## 1. Query raster data ------------------------------------------------------------------------------------------------
 
 
@@ -25,6 +24,7 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 #' Select raster database:
 ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2017-06_10m")
 
+
 #' define AOI (can be any spatial object)
 #' in this case, it is the full extent of the data
 AOI <- ALS_metrics.db$extent
@@ -32,6 +32,7 @@ AOI <- ALS_metrics.db$extent
 #' query rasterstack of ALS Metrics: 
 ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 15, 36))
 plot(ALS_metrics.raster)
+
 
 # ---- Postprocessing ---- #
 
