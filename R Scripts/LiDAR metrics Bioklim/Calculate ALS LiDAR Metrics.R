@@ -49,7 +49,7 @@ setwd("C:/Users/jakob/OneDrive/BFNP/Projects/Other/LiDAR metrics Bioklim/Data/")
 
 
 #' connect to ALS point cloud database:
-ALS_data <- db$pointcloud('ALS_2017-06')
+ALS_data <- db$pointcloud('ALS_2023_07')
 
 #' load and preprocess the Haselhuhn point data:
 Bioklim_plots <- read_sf("Bioklim Plots/Bioklim_2016_157Plots_ETRS_Puffer50m.shp") %>% 
