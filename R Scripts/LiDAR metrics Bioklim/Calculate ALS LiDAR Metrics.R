@@ -27,6 +27,7 @@ require(sf)
 require(terra)
 require(dplyr)
 require(mapview)
+require(lidR)
 
 
 ### Required functions and scripts ----
@@ -40,20 +41,16 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 
 
 ### Set working directories ----
-
-setwd("C:/Users/jakob/OneDrive/BFNP/Projects/Other/LiDAR metrics Bioklim/Data/")
-
+setwd("C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/LiDAR metrics Bioklim/Data/")
 
 
-## Derive LiDAR metrics for each location ------------------------------------------------------------------------------
+
+## 1. Load and Preprocess AOIs -----------------------------------------------------------------------------------------
 
 
-#' connect to ALS point cloud database:
-ALS_data <- db$pointcloud('ALS_2023_07')
-
-#' load and preprocess the Haselhuhn point data:
+#' load and preprocess the Bíoklim plot areas:
 Bioklim_plots <- read_sf("Bioklim Plots/Bioklim_2016_157Plots_ETRS_Puffer50m.shp") %>% 
-  st_transform(crs = ALS_data$proj4) %>%           #' convert coordinate system to match the ALS data
+  st_transform(crs = "EPSG:32632") %>%           #' convert coordinate system to match the ALS data
   as("Spatial")                                    #' convert to spatial polygons
 
 mapview(Bioklim_plots)
@@ -62,16 +59,41 @@ mapview(Bioklim_plots)
 Bioklim_plots_matrix <- convert_SpatialPolygons_to_named_matrix_list(Bioklim_plots)
 names(Bioklim_plots_matrix) <- Bioklim_plots$Plot
 
-Bioklim_plots_matrix
 
+
+## 2. Query pointcloud data --------------------------------------------------------------------------------------------
+
+#' get the extent of one plot as the AOI:
+#AOI <- extent(HTO_test_tiles_poly[20,])
+AOI <- Bioklim_plots_matrix$T4_64
+
+#' connect to ALS point cloud database:
+ALS_data.db <- db$pointcloud('ALS_2017-06')
+
+#' querry the points:
+ALS_data.points <- ALS_data.db$points(ext=AOI)
+head(ALS_data.points)
+
+#' redefine ScanAngleRank
+ALS_data.points$scanAngleRank <- 33
+
+#' convert dataframe to LAS:
+ALS_data.las <- RSDB::as.LAS(ALS_data.points, proj4string = crs(ALS_data.db))
+ALS_data.las
+
+#' change the projection:
+projection(ALS_data.las)<- "EPSG:32632"
+
+#' write to disk:
+writeLAS(ALS_data.las, "ALS_2017.las")
+
+
+
+
+## 1. Derive LiDAR metrics for each location ------------------------------------------------------------------------------
 
 indices_names <- c("Vegetation height mean", "Vegetation height max", "Vegetation height standard deviation", 
   "Penetration rate 1-2m", "Penetration rate 2-5m", "Penetration rate 2-50m")
-
-
-
-
-
 
 #'create a list of all indices to be calculated (names according to RSDB terminology):
 #indices = c("BE_H_MEAN", "BE_H_MAX", "BE_H_SD", "BE_PR_01", paste0("BE_PR_", sprintf("%02d", 2:49)), "BE_PR_UND")
