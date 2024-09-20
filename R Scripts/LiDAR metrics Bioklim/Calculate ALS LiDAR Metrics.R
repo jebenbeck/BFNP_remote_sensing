@@ -63,6 +63,7 @@ names(Bioklim_plots_matrix) <- Bioklim_plots$Plot
 
 ## 2. Query pointcloud data --------------------------------------------------------------------------------------------
 
+
 #' get the extent of one plot as the AOI:
 #AOI <- extent(HTO_test_tiles_poly[20,])
 AOI <- Bioklim_plots_matrix$T4_64
@@ -86,6 +87,62 @@ projection(ALS_data.las)<- "EPSG:32632"
 
 #' write to disk:
 writeLAS(ALS_data.las, "ALS_2017.las")
+
+
+
+## 3. Calculate penetration rates for different levels -----------------------------------------------------------------
+
+
+
+calculate_penetration_rate <- function(layer) {
+  # Assuming the layer is a LAS object
+  # Extract Z coordinate (height) of each point in the layer
+  Z_values <- layer@data$Z
+  
+  # Define the lower threshold of the layer
+  lower_threshold <- 1  # Define your lower threshold value here
+  
+  # Count the number of pulses that hit the bottom of the layer
+  hits_bottom <- sum(Z_values <= lower_threshold)
+  
+  # Count the total number of transmitted pulses (total points in the layer)
+  total_points <- length(Z_values)
+  
+  # Calculate penetration rate
+  penetration_rate <- (hits_bottom / total_points) * 100
+  
+  return(penetration_rate)
+}
+
+
+
+# Segment the point cloud into layers (e.g., based on height)
+# You can use different segmentation algorithms or filters depending on your data
+# Here's a simple example using a height-based filter
+layers <- catalog_apply(las, function(chunk) {
+  lasfilter = filter_poi(chunk, Z > min_height & Z < max_height)
+})
+
+# Calculate penetration rates for each layer
+penetration_rates <- sapply(layers, function(layer) {
+  # Calculate penetration rate metric for the layer
+  # This could be based on the density of points, vegetation indices, etc.
+  # Replace this with your specific metric calculation
+  penetration_rate <- your_calculation_function(layer)
+  return(penetration_rate)
+})
+
+# Print or further analyze penetration rates
+print(penetration_rates)
+
+
+
+
+
+
+
+
+
 
 
 

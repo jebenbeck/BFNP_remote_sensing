@@ -10,7 +10,7 @@ library(lidR)
 # ---- Connect to RSDB server ---- #
 
 #' Provide the login-credentials in an local R file on your computer or via an object (format: "username:password")
-source("C:/Users/jakob/OneDrive/BFNP/Projects/Forest Ecosystem Monitoring/R Scripts/RSDB/RSDB credentials.R")
+source("C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/RSDB/RSDB credentials.R")
 
 #' Connect to the server
 db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials) 
@@ -23,7 +23,6 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 
 #' Select raster database:
 ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2017-06_10m")
-
 
 #' define AOI (can be any spatial object)
 #' in this case, it is the full extent of the data
@@ -77,7 +76,6 @@ ALS_2017.db <- db$pointcloud('ALS_2017-06')
 #' tiling the AOI into 1ha tiles:
 HTO_test_tiles.poly <- st_make_grid(HTO_test, 100) %>% 
   st_as_sf()
-
 
 # Querry the points
 
