@@ -49,7 +49,6 @@ sd_2_hd <- function(angle_deg, dist_s){
 input_path <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Collect Daten/Export/"
 
 plot_data <- read_xlsx(paste0(input_path, "aufnahme_terrestrischer_laserscanner.xlsx"))
-View(plot_data)
 
 gcps <- read_xlsx(paste0(input_path, "gcps.xlsx")) %>% 
   select(-contains("unit_name")) %>% 
@@ -74,8 +73,6 @@ plot_ly(data = gcps, x = ~X_rel, y = ~Y_rel, z = ~Z_rel, type="scatter3d", mode=
                       "Y:", Y_rel, "<br>", 
                       "Z:", Z_rel),
         hoverinfo = "text") 
-
-View(gcps)
 
 #' calculate absolute UTM coordinates by using the center point coordinates:
 gcps_koord <- gcps %>% 
@@ -109,7 +106,7 @@ gcps_coord_full
 #' convert to spatial data:
 sf <- st_as_sf(gcps_coord_full, coords = c("X_UTM", "Y_UTM"), crs = "EPSG:25832", na.fail = F, remove = F)
 
-mapview(sf, label = sf$plot_id, zcol = "gcp_richtung")
+mapview(sf, label = sf$Name, zcol = "gcp_richtung")
 
 
 ### Export data ----
