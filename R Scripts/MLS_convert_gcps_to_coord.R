@@ -130,14 +130,36 @@ plot_ly(data = gcps_coord, x = ~X_rel, y = ~Y_rel, z = ~Z_rel, type="scatter3d",
 mapview(gcps_coord_full_spatial, label = gcps_coord_full_spatial$gcp_name, zcol = "gcp_richtung")
 
 
+
 ### Export data ----
 
 #' export GCPs to gpkg:
 st_write(sf, dsn = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/Punkte_V1.gpkg")
 
 #' export GCPs to csv in FARO-specific format:
+
 gcps_coord_faro <- gcps_coord_full %>% 
-  select(c(gcp_name, X_UTM, Y_UTM, Z_DHHN16)) #%>% 
-#  drop_na()
-View(gcps_coord_faro)
+  group_by(plot_id) %>% 
+  select(c(gcp_name, X_UTM, Y_UTM, Z_DHHN16)) %>% 
+  #' split into individual data frames per plot:
+  group_split(.keep = F) %>% 
+  #' rename the seperate files:
+  setNames(gcps_coord_full %>% 
+             group_by(plot_id) %>% 
+             group_keys() %>% 
+             pull(plot_id))
+
+#' export loop:
+outdir <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/"
+
+for (i in 1:length(gcps_coord_faro)) {
+  
+  write.csv(gcps_coord_faro[[i]], file = paste0(outdir, names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
+}
+
+gcps_coord_faro
+
+write.csv()
+
+
 write.table(gcps_koord_faro, file = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/Punkte_V1.txt", sep = ",", quote = F, row.names = F)
