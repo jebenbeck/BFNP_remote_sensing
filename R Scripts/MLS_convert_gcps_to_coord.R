@@ -106,14 +106,12 @@ plot_coordinates_formatted <- plot_coordinates %>%
 gcps_coord_full <- bind_rows(gcps_coord, plot_coordinates_formatted) %>% 
   #' replace all NAs with 0:
   mutate(
-    across(everything(), ~replace_na(.x, 0))
+    across(-Z_DHHN16, ~replace_na(.x, 0))
   ) %>% 
   #' name each gcp after its' position and plot_id:
   mutate(gcp_name = paste0(plot_id, "_", gcp_richtung), .before = gcp_azimut) %>% 
   #' sort the dataset:
   arrange(plot_id, gcp_richtung)
-
-gcps_coord_full
 
 #' convert all gcps to spatial data:
 gcps_coord_full_spatial <- st_as_sf(gcps_coord_full, coords = c("X_UTM", "Y_UTM"), crs = "EPSG:25832", na.fail = F, remove = F)
@@ -138,9 +136,8 @@ mapview(gcps_coord_full_spatial, label = gcps_coord_full_spatial$gcp_name, zcol 
 st_write(sf, dsn = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/Punkte_V1.gpkg")
 
 #' export GCPs to csv in FARO-specific format:
-gcps_koord_faro <- gcps_coord_full %>% 
-  select(c(Name, X_UTM, Y_UTM, Z_DHHN16)) %>% 
-  drop_na() %>% 
-  setNames(c("Name", "X", "Y", "Z"))
-
+gcps_coord_faro <- gcps_coord_full %>% 
+  select(c(gcp_name, X_UTM, Y_UTM, Z_DHHN16)) #%>% 
+#  drop_na()
+View(gcps_coord_faro)
 write.table(gcps_koord_faro, file = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/Punkte_V1.txt", sep = ",", quote = F, row.names = F)
