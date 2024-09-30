@@ -21,7 +21,8 @@
 
 #' TO-DO: 
 #' - renaming all column names
-#' - export in FARO-csv-format (seperated by plot)
+#' - export relative coordinates in FARO-csv-Format
+#' - implement external coordinates
 
 ### Required datasets ----
 
@@ -106,7 +107,7 @@ plot_coordinates_formatted <- plot_coordinates %>%
 gcps_coord_full <- bind_rows(gcps_coord, plot_coordinates_formatted) %>% 
   #' replace all NAs with 0:
   mutate(
-    across(-Z_DHHN16, ~replace_na(.x, 0))
+    across(-c(Z_DHHN16, X_UTM, Y_UTM), ~replace_na(.x, 0))
   ) %>% 
   #' name each gcp after its' position and plot_id:
   mutate(gcp_name = paste0(plot_id, "_", gcp_richtung), .before = gcp_azimut) %>% 
@@ -134,7 +135,7 @@ mapview(gcps_coord_full_spatial, label = gcps_coord_full_spatial$gcp_name, zcol 
 ### Export data ----
 
 #' export GCPs to gpkg:
-st_write(sf, dsn = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/Punkte_V1.gpkg")
+st_write(sf, dsn = paste0("C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Results/GCPs_", Sys.Date(), ".gpkg"), append = F)
 
 #' export GCPs to csv in FARO-specific format:
 
@@ -150,16 +151,9 @@ gcps_coord_faro <- gcps_coord_full %>%
              pull(plot_id))
 
 #' export loop:
-outdir <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/"
+outdir <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Results/GCPs Faro absolut/"
 
 for (i in 1:length(gcps_coord_faro)) {
   
   write.csv(gcps_coord_faro[[i]], file = paste0(outdir, names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
 }
-
-gcps_coord_faro
-
-write.csv()
-
-
-write.table(gcps_koord_faro, file = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Export/Punkte_V1.txt", sep = ",", quote = F, row.names = F)
