@@ -242,14 +242,28 @@ class_percentages_zone
 class_percentages_altitude <- bind_rows(class_percentages_MLS_Altitude, class_percentages_total_altitude)
 class_percentages_altitude
 
-ggplot(data = class_percentages_zone, aes(x = Zone, y = percentage, fill = Typ)) + 
+class_percentages_zone_plot <- ggplot(data = class_percentages_zone, aes(x = Zone, y = percentage, fill = Typ)) + 
   geom_col(position = "dodge") +
   geom_text(aes(label = count),
             position = position_dodge(width = 0.9),
             vjust = -0.5)
 
-ggplot(data = class_percentages_altitude, aes(x = Höhenlage, y = percentage, fill = Typ)) + 
+ggsave(filename = "Representativeness_Zones.png", 
+       plot = class_percentages_zone_plot, 
+       path = "C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/MLS/",
+       device = "png", 
+       width = 300, height = 200, units = "mm", dpi = 200)
+
+
+class_percentages_altitude_plot <- ggplot(data = class_percentages_altitude, aes(x = Höhenlage, y = percentage, fill = Typ)) + 
   geom_col(position = "dodge") + 
   geom_text(aes(label = count),
             position = position_dodge(width = 0.9),
             vjust = -0.5)
+
+ggsave(filename = "Representativeness_Altitudes.png", 
+       plot = class_percentages_altitude_plot, 
+       path = "C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/MLS/",
+       device = "png", 
+       width = 300, height = 200, units = "mm", dpi = 200)
+
