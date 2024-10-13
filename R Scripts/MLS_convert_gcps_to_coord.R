@@ -35,6 +35,8 @@ require(ggplot2)
 require(plotly)
 require(sf)
 require(mapview)
+require(terra)
+require(sgsR)
 
 
 
@@ -131,12 +133,16 @@ plot_ly(data = gcps_coord, x = ~X_rel, y = ~Y_rel, z = ~Z_rel, type="scatter3d",
 mapview(gcps_coord_full_spatial, label = gcps_coord_full_spatial$gcp_name, zcol = "gcp_richtung")
 
 
-
 ### Export data ----
 
 #' export GCPs to gpkg:
-st_write(sf, dsn = paste0("C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Results/GCPs_", Sys.Date(), ".gpkg"), append = F)
+st_write(gcps_coord_full_spatial, dsn = paste0("C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/GCPs/GCPs_", Sys.Date(), ".gpkg"), append = F)
 
+#' export all center plots to gpkg:
+st_write(filter(gcps_coord_full_spatial, gcp_richtung == "z"), 
+         dsn = paste0("C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Plots_surveyed_", Sys.Date(), ".gpkg"), append = F)
+
+       
 #' export GCPs to csv in FARO-specific format:
 
 gcps_coord_faro <- gcps_coord_full %>% 
@@ -157,3 +163,93 @@ for (i in 1:length(gcps_coord_faro)) {
   
   write.csv(gcps_coord_faro[[i]], file = paste0(outdir, names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
 }
+
+
+
+## 2. Representation analysis  -----------------------------------------------------------------------------------------
+
+
+### import data for strata ----
+
+#' 1) the differenz altitudinal zones
+altitudinal_zones <- st_read(dsn = "H:/Basisdaten/Höhenstufen/Höhenstufen.gpkg") %>% 
+  rename(Höhenlage = TEXT)
+
+#' 2) the different management zones
+zonation <- st_read(dsn = "H:/Basisdaten/Zonierung/Zonierung.gpkg")
+
+
+### Calculate representativeness of the MLS plots ----
+
+#' overlay the strata with the MLS plots:
+x <- gcps_coord_full_spatial %>% 
+  filter(gcp_richtung == "z") %>% 
+  st_intersection(., zonation) %>% 
+  st_intersection(., altitudinal_zones) %>% 
+  select(plot_id, Zone, Höhenlage) %>% 
+  st_drop_geometry()
+
+#' by zone
+class_percentages_MLS_Zone <- x %>%
+  group_by(Zone) %>%
+  summarise(
+    count = n(),
+    percentage = (n() / nrow(x)) * 100
+  ) %>% 
+  mutate("Typ" = "MLS")
+
+#' by altitude:
+class_percentages_MLS_Altitude <- x %>% 
+  group_by(Höhenlage) %>%
+  summarise(
+    count = n(),
+    percentage = (n() / nrow(x)) * 100
+  ) %>% 
+  mutate("Typ" = "MLS")
+
+
+
+### Calculate representativeness of full strata ----
+
+class_percentages_total_zone <- zonation %>% 
+  select(Zone, Flächenpr) %>% 
+  st_drop_geometry() %>% 
+  rename(percentage = Flächenpr) %>% 
+  mutate("Typ" = "total")
+
+class_percentages_total_zone
+
+class_percentages_total_altitude <- altitudinal_zones %>%
+  mutate("area" = as.numeric(st_area(.))) %>% 
+  st_drop_geometry() %>% 
+  group_by(Höhenlage) %>% 
+  summarise(area = sum(area)) %>% 
+  ungroup() %>% 
+  mutate(total_area = sum(area),
+         percentage = (area/total_area)*100,
+         "Typ" = "total") %>% 
+  select(Höhenlage, percentage, Typ)
+  
+class_percentages_total_altitude
+
+
+### Plot the result ----
+
+#' combine the datasets:
+class_percentages_zone <- bind_rows(class_percentages_MLS_Zone, class_percentages_total_zone)
+class_percentages_zone
+
+class_percentages_altitude <- bind_rows(class_percentages_MLS_Altitude, class_percentages_total_altitude)
+class_percentages_altitude
+
+ggplot(data = class_percentages_zone, aes(x = Zone, y = percentage, fill = Typ)) + 
+  geom_col(position = "dodge") +
+  geom_text(aes(label = count),
+            position = position_dodge(width = 0.9),
+            vjust = -0.5)
+
+ggplot(data = class_percentages_altitude, aes(x = Höhenlage, y = percentage, fill = Typ)) + 
+  geom_col(position = "dodge") + 
+  geom_text(aes(label = count),
+            position = position_dodge(width = 0.9),
+            vjust = -0.5)
