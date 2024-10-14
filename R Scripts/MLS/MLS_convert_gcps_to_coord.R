@@ -36,7 +36,6 @@ require(plotly)
 require(sf)
 require(mapview)
 require(terra)
-require(sgsR)
 
 
 
@@ -119,6 +118,7 @@ gcps_coord_full <- bind_rows(gcps_coord, plot_coordinates_formatted) %>%
 #' convert all gcps to spatial data:
 gcps_coord_full_spatial <- st_as_sf(gcps_coord_full, coords = c("X_UTM", "Y_UTM"), crs = "EPSG:25832", na.fail = F, remove = F)
 
+
 ### Check and visualize the data ----
 
 #' visualize relative coordinates for checking:
@@ -142,12 +142,12 @@ st_write(gcps_coord_full_spatial, dsn = paste0("C:/Users/jakob/OneDrive/BFNP/Dat
 st_write(filter(gcps_coord_full_spatial, gcp_richtung == "z"), 
          dsn = paste0("C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Plots_surveyed_", Sys.Date(), ".gpkg"), append = F)
 
-       
-#' export GCPs to csv in FARO-specific format:
+gcps_coord_full
 
+#' export relative and absolute GCPs to csv in FARO-specific format (csv) 
 gcps_coord_faro <- gcps_coord_full %>% 
   group_by(plot_id) %>% 
-  select(c(gcp_name, X_UTM, Y_UTM, Z_DHHN16)) %>% 
+  select(c(gcp_name, X_UTM, Y_UTM, Z_DHHN16, X_rel, Y_rel, Z_rel)) %>% 
   #' split into individual data frames per plot:
   group_split(.keep = F) %>% 
   #' rename the seperate files:
@@ -157,14 +157,16 @@ gcps_coord_faro <- gcps_coord_full %>%
              pull(plot_id))
 
 #' export loop:
-outdir <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Results/GCPs Faro absolut/"
+outdir <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/GCPs/"
 
 for (i in 1:length(gcps_coord_faro)) {
-  
-  write.csv(gcps_coord_faro[[i]], file = paste0(outdir, names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
+  #' absolute coordinates
+  write.csv(select(gcps_coord_faro[[i]], c("gcp_name", "X_UTM", "Y_UTM", "Z_DHHN16")), 
+            file = paste0(outdir,"absolut/GCPs_absolut_", names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
+  #' relative coordinates
+  write.csv(select(gcps_coord_faro[[i]], c("gcp_name", "X_rel", "Y_rel", "Z_rel")), 
+            file = paste0(outdir,"relativ/GCPs_relativ_", names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
 }
-
-
 
 ## 2. Representation analysis  -----------------------------------------------------------------------------------------
 
@@ -182,7 +184,7 @@ zonation <- st_read(dsn = "H:/Basisdaten/Zonierung/Zonierung.gpkg")
 ### Calculate representativeness of the MLS plots ----
 
 #' overlay the strata with the MLS plots:
-x <- gcps_coord_full_spatial %>% 
+gcps_coord_full_spatial_strata <- gcps_coord_full_spatial %>% 
   filter(gcp_richtung == "z") %>% 
   st_intersection(., zonation) %>% 
   st_intersection(., altitudinal_zones) %>% 
@@ -190,27 +192,27 @@ x <- gcps_coord_full_spatial %>%
   st_drop_geometry()
 
 #' by zone
-class_percentages_MLS_Zone <- x %>%
+class_percentages_MLS_Zone <- gcps_coord_full_spatial_strata %>%
   group_by(Zone) %>%
   summarise(
     count = n(),
-    percentage = (n() / nrow(x)) * 100
+    percentage = (n() / nrow(gcps_coord_full_spatial_strata)) * 100
   ) %>% 
   mutate("Typ" = "MLS")
 
 #' by altitude:
-class_percentages_MLS_Altitude <- x %>% 
+class_percentages_MLS_Altitude <- gcps_coord_full_spatial_strata %>% 
   group_by(Höhenlage) %>%
   summarise(
     count = n(),
-    percentage = (n() / nrow(x)) * 100
+    percentage = (n() / nrow(gcps_coord_full_spatial_strata)) * 100
   ) %>% 
   mutate("Typ" = "MLS")
 
 
-
 ### Calculate representativeness of full strata ----
 
+#' based on the zonation:
 class_percentages_total_zone <- zonation %>% 
   select(Zone, Flächenpr) %>% 
   st_drop_geometry() %>% 
@@ -219,6 +221,7 @@ class_percentages_total_zone <- zonation %>%
 
 class_percentages_total_zone
 
+#' based on the altitudinal zones:
 class_percentages_total_altitude <- altitudinal_zones %>%
   mutate("area" = as.numeric(st_area(.))) %>% 
   st_drop_geometry() %>% 
@@ -233,7 +236,7 @@ class_percentages_total_altitude <- altitudinal_zones %>%
 class_percentages_total_altitude
 
 
-### Plot the result ----
+### Visualize the result ----
 
 #' combine the datasets:
 class_percentages_zone <- bind_rows(class_percentages_MLS_Zone, class_percentages_total_zone)
@@ -242,6 +245,7 @@ class_percentages_zone
 class_percentages_altitude <- bind_rows(class_percentages_MLS_Altitude, class_percentages_total_altitude)
 class_percentages_altitude
 
+#' plot the representativeness based on the zonation:
 class_percentages_zone_plot <- ggplot(data = class_percentages_zone, aes(x = Zone, y = percentage, fill = Typ)) + 
   geom_col(position = "dodge") +
   geom_text(aes(label = count),
@@ -254,7 +258,7 @@ ggsave(filename = "Representativeness_Zones.png",
        device = "png", 
        width = 300, height = 200, units = "mm", dpi = 200)
 
-
+#' plot the representativeness based on the altitudinal levels:
 class_percentages_altitude_plot <- ggplot(data = class_percentages_altitude, aes(x = Höhenlage, y = percentage, fill = Typ)) + 
   geom_col(position = "dodge") + 
   geom_text(aes(label = count),
