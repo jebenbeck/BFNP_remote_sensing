@@ -20,8 +20,6 @@
 ### Notes ----
 
 #' TO-DO: 
-#' - renaming all column names
-#' - export relative coordinates in FARO-csv-Format
 #' - implement external coordinates
 
 ### Required datasets ----
@@ -92,7 +90,7 @@ gcps_coord <- gcps %>%
          Y_UTM = Y_rel + Y_UTM_center,
          Z_DHHN16 = Z_rel + Z_DHHN16_center) %>% 
   #' remove unneccessary columns:
-  select(-c(X_UTM_center, Y_UTM_center, Z_DHHN16_center))
+  select(-c(X_UTM_center, Y_UTM_center, Z_DHHN16_center)) 
 
 gcps_coord         
 
@@ -103,6 +101,8 @@ plot_coordinates_formatted <- plot_coordinates %>%
          "Z_DHHN16" = "Z_DHHN16_center") %>% 
   mutate("_gcps_position" = 0,
          "gcp_richtung" = "z")
+
+plot_coordinates_formatted
 
 #' add the center coordinates to the gcp dataset as additional gcp:
 gcps_coord_full <- bind_rows(gcps_coord, plot_coordinates_formatted) %>% 
