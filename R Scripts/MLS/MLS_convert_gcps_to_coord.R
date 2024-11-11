@@ -75,6 +75,7 @@ plot_coordinates <- plot_data %>%
 
 
 ### Pipeline to process the data ----
+plot_data
 
 gcps_coord <- gcps %>%
   #' calculate the horizontal distance:
@@ -168,6 +169,8 @@ for (i in 1:length(gcps_coord_faro)) {
             file = paste0(outdir,"relativ/GCPs_relativ_", names(gcps_coord_faro[i]), ".csv"), row.names = F, append = F)
 }
 
+
+
 ## 2. Representation analysis  -----------------------------------------------------------------------------------------
 
 
@@ -175,7 +178,7 @@ for (i in 1:length(gcps_coord_faro)) {
 
 #' 1) the differenz altitudinal zones
 altitudinal_zones <- st_read(dsn = "H:/Basisdaten/Höhenstufen/Höhenstufen.gpkg") %>% 
-  rename(Höhenlage = TEXT)
+  rename(Höhenlage = Stufe)
 
 #' 2) the different management zones
 zonation <- st_read(dsn = "H:/Basisdaten/Zonierung/Zonierung.gpkg")
@@ -254,7 +257,7 @@ class_percentages_zone_plot <- ggplot(data = class_percentages_zone, aes(x = Zon
 
 ggsave(filename = "Representativeness_Zones.png", 
        plot = class_percentages_zone_plot, 
-       path = "C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/MLS/",
+       path = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/",
        device = "png", 
        width = 300, height = 200, units = "mm", dpi = 200)
 
@@ -267,7 +270,7 @@ class_percentages_altitude_plot <- ggplot(data = class_percentages_altitude, aes
 
 ggsave(filename = "Representativeness_Altitudes.png", 
        plot = class_percentages_altitude_plot, 
-       path = "C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/MLS/",
+       path = "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/",
        device = "png", 
        width = 300, height = 200, units = "mm", dpi = 200)
 
