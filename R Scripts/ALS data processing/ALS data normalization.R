@@ -4,7 +4,7 @@ library(lidR)
 #' read las file
 #' it should have classified ground points:
 las <- readLAS("H:/Testdaten Befliegungen 2023/ALS_20230715_Sulzschachten.las")
-
+las@data
 #' normalize point cloud based on DTM:
 las_normalized <- lidR::normalize_height(las, algorithm = tin())
 
