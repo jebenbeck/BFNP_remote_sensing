@@ -1,2 +1,7 @@
 # Forest-Ecosystem-Monitoring
-Remote sensing based forest ecosystem monitoring in the Bavarian Forest National Park
+Scripts supporting the remote sensing based forest monitoring in the Bavarian Forest National Park. 
+
+Topics:
+- LiDAR data processing from airborne, drone-based and terrestial sensors
+- Processing datasets using the remote sensing data base
+- Handling of large rasters and multipolygons  
