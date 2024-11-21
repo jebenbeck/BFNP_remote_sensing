@@ -11,7 +11,7 @@ library(lidR)
 # ---- Connect to RSDB server ---- #
 
 #' Provide the login-credentials in an local R file on your computer or via an object (format: "username:password")
-source("C:/Users/jakob/OneDrive/BFNP/Documents/RSDB/RSDB credentials.R")
+source("C:/Users/Rieser/OneDrive/BFNP/Documents/RSDB/RSDB credentials.R")
 
 
 #' Connect to the server
@@ -107,8 +107,8 @@ writeLAS(ALS_2017.las, "F:/ALS_2017.las")
 
 
 #' read AOI:
-AOI <- read_sf("H:/Testdaten Befliegungen 2023/AOIs_Testdaten_Befliegungen.gpkg") %>% 
-  filter(Gebiet == "Scheuereck") %>% 
+AOI <- read_sf("F:/Testdaten Befliegungen 2023/AOIs_Testdaten_Befliegungen.gpkg") %>% 
+  filter(Gebiet == "Sulzschachten") %>% 
   extent()
 
 # Select a ALS acquisition
@@ -118,17 +118,20 @@ ALS_2017.db <- db$pointcloud("ALS_2017-06")
 ALS_2017.points <- ALS_2017.db$points(ext = AOI)
 ALS_2017.points
 
-#' redefine ScanAngleRank
-ALS_2017.points$scanAngleRank <- 0
+#' remove scanAngleRank argument
+ALS_2017.points$scanAngleRank <- NULL
+ALS_2017.points$classificationFlags <- NULL
+head(ALS_2017.points)
 
 #' convert dataframe to LAS:
 ALS_2017.las <- RSDB::as.LAS(ALS_2017.points, proj4string = ALS_2017.db$proj4)
 
 #' change the projection:
 projection(ALS_2017.las)<- "EPSG:32632"
+ALS_2017.las
 
 #' write to disk:
-writeLAS(ALS_2017.las, "C:/Users/jakob/Desktop/ALS_2017_Scheuereck.las")
+writeLAS(ALS_2017.las, "F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten.las")
 
 
 

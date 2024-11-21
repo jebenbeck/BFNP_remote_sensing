@@ -3,8 +3,8 @@ library(lidR)
 
 #' read las file
 #' it should have classified ground points:
-las <- readLAS("H:/Testdaten Befliegungen 2023/ALS_20230715_Sulzschachten.las")
-las@data
+las <- readLAS("F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten.las")
+
 #' normalize point cloud based on DTM:
 las_normalized <- lidR::normalize_height(las, algorithm = tin())
 
@@ -25,7 +25,9 @@ plot(las_output, color = "Z")
 plot(las_output, color = "NormalizedHeight")
 
 #' export:
-writeLAS(las_output, "H:/Testdaten Befliegungen 2023/Output/ALS_20230715_Sulzschachten.las")
+writeLAS(las_output, "F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten_normalized.las")
 
+rm(las, las_normalized, las_output)
+gc()
 #' check:
 las_2 <- readLAS("H:/Testdaten Befliegungen 2023/Output/ALS_20230715_Sulzschachten.las")
