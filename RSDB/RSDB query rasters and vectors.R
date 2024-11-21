@@ -10,7 +10,7 @@ library(lidR)
 # ---- Connect to RSDB server ---- #
 
 #' Provide the login-credentials in an local R file on your computer or via an object (format: "username:password")
-source("C:/Users/jakob/OneDrive/BFNP/Projects/Forest-Ecosystem-Monitoring/R Scripts/RSDB/RSDB credentials.R")
+source("C:/Users/jakob/OneDrive/BFNP/Repositories/BFNP_remote_sensing/RSDB/RSDB credentials.R")
 
 #' Connect to the server
 db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials) 
