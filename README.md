@@ -1,4 +1,4 @@
-# Forest-Ecosystem-Monitoring
+# Remote sensing for forest monitoring
 Scripts supporting the remote sensing based forest monitoring in the Bavarian Forest National Park. 
 
 Topics:
