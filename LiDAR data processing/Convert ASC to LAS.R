@@ -24,9 +24,11 @@
 
 library(lidR)
 library(pbapply)
+library(tidyverse)
 
 
-## 1. Skript -----------------------------------------------------------------------------------------------------------
+## Skript --------------------------------------------------------------------------------------------------------------
+
 
 #' Specify input and output directories
 input_dir <- "E:/ALS 2012/Punktwolken_asc/"
@@ -60,8 +62,12 @@ process_asc_file <- function(asc_file) {
   colnames(point_data) <- c("X", "Y", "Z", "Pulsewidth", "Intensity", "ReturnNumber", "gpstime")
   
   #' Step 3: Create a LAS object from the data frame
-  las_data <- LAS(point_data)
-  st_crs(las_data) <- 31468  # Set the coordinate reference system (adjust as needed)
+  las_data <- LAS(point_data) %>% 
+    #' add Pulsewidth as attribute to the las file:
+    add_lasattribute(., point_data$Pulsewidth, name = "Pulsewidth", desc = "Pulsewidth")
+  
+  #' Set the coordinate reference system (adjust as needed)
+  st_crs(las_data) <- 31468  
   
   #' Step 4: Export the LAS object to a LAS file
   output_file <- file.path(output_dir, paste0(file_name, ".laz"))
@@ -72,14 +78,8 @@ process_asc_file <- function(asc_file) {
 }
 
 #' Use pbapply for processing all ASC files in parallel:
-
-#' number of cores:
-n_cores <- 2
 output_files <- pblapply(asc_files, process_asc_file, cl = 2)
 
 #' Test:
-x <- readLAS("E:/ALS 2012/Punktwolken_laz/spur00001.laz")
-plot(x)
-
-
-
+test <- readLAS("E:/ALS 2012/Punktwolken_laz/spur00001.laz")
+test@data
