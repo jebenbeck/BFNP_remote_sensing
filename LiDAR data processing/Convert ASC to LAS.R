@@ -35,7 +35,7 @@ input_dir <- "E:/ALS 2012/Punktwolken_asc/"
 output_dir <- "E:/ALS 2012/Punktwolken_laz/"
 
 #' number of files to process (only for testing)
-n_files <- 2
+n_files <- NA
 
 #' Create the output directory if it doesn't exist
 if (!dir.exists(output_dir)) {
@@ -49,6 +49,13 @@ asc_files <- list.files(input_dir, pattern = "\\.asc$", full.names = TRUE)
 if (n_files > 0) {
   asc_files <- asc_files[1:n_files]
 }
+
+#' Get a list of all already processed files in the output directory
+processed_files <- list.files(output_dir, pattern = "\\.laz$", full.names = FALSE)
+processed_files <- tools::file_path_sans_ext(processed_files) # Remove extensions for comparison
+
+#' Filter asc_files to skip already processed ones
+asc_files_to_process <- asc_files[!tools::file_path_sans_ext(basename(asc_files)) %in% processed_files]
 
 #' Define a function to process a single ASC file
 process_asc_file <- function(asc_file) {
@@ -78,7 +85,17 @@ process_asc_file <- function(asc_file) {
 }
 
 #' Use pbapply for processing all ASC files in parallel:
-output_files <- pblapply(asc_files, process_asc_file, cl = 2)
+
+cluster <- parallel::makeCluster(2)
+
+parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", "read.table", "output_dir", "LAS", "add_lasattribute",
+"colnames", "st_crs"))
+parallel::clusterEvalQ(cluster, library(lidR)) # Load lidR on all nodes
+parallel::clusterEvalQ(cluster, library(tidyverse)) # Load tidyverse on all nodes
+
+output_files <- pblapply(asc_files_to_process, process_asc_file, cl = cluster)
+
+parallel::stopCluster(cluster)
 
 #' Test:
 test <- readLAS("E:/ALS 2012/Punktwolken_laz/spur00001.laz")
