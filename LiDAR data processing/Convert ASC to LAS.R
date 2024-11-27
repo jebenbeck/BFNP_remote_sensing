@@ -31,8 +31,8 @@ library(tidyverse)
 
 
 #' Specify input and output directories
-input_dir <- "E:/ALS 2012/Punktwolken_asc/"
-output_dir <- "E:/ALS 2012/Punktwolken_laz/"
+input_dir <- "H:/ALS 2012/Punktwolken_asc/"
+output_dir <- "H:/ALS 2012/Punktwolken_laz/"
 
 #' number of files to process (only for testing)
 n_files <- NA
@@ -56,14 +56,16 @@ processed_files <- tools::file_path_sans_ext(processed_files) # Remove extension
 
 #' Filter asc_files to skip already processed ones
 asc_files_to_process <- asc_files[!tools::file_path_sans_ext(basename(asc_files)) %in% processed_files]
+asc_files_to_process
 
 #' Define a function to process a single ASC file
 process_asc_file <- function(asc_file) {
+
   #' Extract the filename without the path and extension
   file_name <- tools::file_path_sans_ext(basename(asc_file))
   
   #' Step 1: Read the ASC file as a text file
-  point_data <- read.table(asc_file, header = FALSE, sep = "", stringsAsFactors = FALSE)
+  point_data <- read.table(asc_file, header = FALSE, sep = " ", stringsAsFactors = FALSE)
   
   #' Step 2: Rename columns (adjust if needed)
   colnames(point_data) <- c("X", "Y", "Z", "Pulsewidth", "Intensity", "ReturnNumber", "gpstime")
@@ -86,10 +88,10 @@ process_asc_file <- function(asc_file) {
 
 #' Use pbapply for processing all ASC files in parallel:
 
-cluster <- parallel::makeCluster(2)
+cluster <- parallel::makeCluster(3)
 
-parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", "read.table", "output_dir", "LAS", "add_lasattribute",
-"colnames", "st_crs"))
+parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", "read.table", "output_dir", "LAS", 
+                                             "add_lasattribute", "colnames", "st_crs"))
 parallel::clusterEvalQ(cluster, library(lidR)) # Load lidR on all nodes
 parallel::clusterEvalQ(cluster, library(tidyverse)) # Load tidyverse on all nodes
 
@@ -98,5 +100,5 @@ output_files <- pblapply(asc_files_to_process, process_asc_file, cl = cluster)
 parallel::stopCluster(cluster)
 
 #' Test:
-test <- readLAS("E:/ALS 2012/Punktwolken_laz/spur00001.laz")
+test <- readLAS("H:/ALS 2012/Punktwolken_laz/spur00001.laz")
 test@data
