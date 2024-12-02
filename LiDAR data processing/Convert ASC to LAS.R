@@ -1,104 +1,66 @@
-## Info ----------------------------------------------------------------------------------------------------------------
+library(lidR)
+
+## convert asc to point clouds ----
 
 
-#' Author: Jakob Ebenbeck
-#' Last updated: 25.11.2024
-#' Status: Work in progress 
+# Step 1: Read the ASC file as a text file
+point_data <- read.table("H:/ALS 2012/Punktwolken_asc/spur00001.asc", header = FALSE, sep = "", stringsAsFactors = FALSE)
+
+# Step 2: Rename columns to X, Y, Z (adjust if needed)
+colnames(point_data) <- c("X", "Y", "Z", "Pulsewidth", "Intensity", "ReturnNumber", "gpstime")
+head(point_data)
+
+# Step 3: Create a LAS object from the data frame
+las_data <- LAS(point_data)
+st_crs(las_data) <- 31468
+
+# Step 4: Export the LAS object to a LAS file
+writeLAS(las_data, "C:/Users/jakob/Desktop/example.las")
 
 
-### Purpose of script ----
+## parallel processing
 
-#' Takes all LiDAR Point Clouds stored in ASC format in folder and converts them to LAZ
-#' Works specifically with the data acquired by ALS in 2012 in the BFNP.
-
-### Notes ----
-
-#' Currently, there is one column where it is unclear what it is. It cannot be determined based on the documentation
-#' For now this line is skipped in the output
-
-### Required datasets ----
-
-#' Point clouds in ASC format
-
-### Required packages ----
-
+# Load required libraries
 library(lidR)
 library(pbapply)
-library(tidyverse)
 
-
-## Skript --------------------------------------------------------------------------------------------------------------
-
-
-#' Specify input and output directories
+# Specify input and output directories
 input_dir <- "H:/ALS 2012/Punktwolken_asc/"
-output_dir <- "H:/ALS 2012/Punktwolken_laz/"
+output_dir <- "C:/Users/jakob/Desktop/las_output/"
 
-#' number of files to process (only for testing)
-n_files <- NA
-
-#' Create the output directory if it doesn't exist
+# Create the output directory if it doesn't exist
 if (!dir.exists(output_dir)) {
   dir.create(output_dir)
 }
 
-#' Get a list of all .asc files in the input directory
+# Get a list of all .asc files in the input directory
 asc_files <- list.files(input_dir, pattern = "\\.asc$", full.names = TRUE)
 
-#' subset of list:
-if (n_files > 0) {
-  asc_files <- asc_files[1:n_files]
-}
-
-#' Get a list of all already processed files in the output directory
-processed_files <- list.files(output_dir, pattern = "\\.laz$", full.names = FALSE)
-processed_files <- tools::file_path_sans_ext(processed_files) # Remove extensions for comparison
-
-#' Filter asc_files to skip already processed ones
-asc_files_to_process <- asc_files[!tools::file_path_sans_ext(basename(asc_files)) %in% processed_files]
-asc_files_to_process
-
-#' Define a function to process a single ASC file
+# Define a function to process a single ASC file
 process_asc_file <- function(asc_file) {
-
-  #' Extract the filename without the path and extension
+  # Extract the filename without the path and extension
   file_name <- tools::file_path_sans_ext(basename(asc_file))
   
-  #' Step 1: Read the ASC file as a text file
-  point_data <- read.table(asc_file, header = FALSE, sep = " ", stringsAsFactors = FALSE)
+  # Step 1: Read the ASC file as a text file
+  point_data <- read.table(asc_file, header = FALSE, sep = "", stringsAsFactors = FALSE)
   
-  #' Step 2: Rename columns (adjust if needed)
+  # Step 2: Rename columns (adjust if needed)
   colnames(point_data) <- c("X", "Y", "Z", "Pulsewidth", "Intensity", "ReturnNumber", "gpstime")
   
-  #' Step 3: Create a LAS object from the data frame
-  las_data <- LAS(point_data) %>% 
-    #' add Pulsewidth as attribute to the las file:
-    add_lasattribute(., point_data$Pulsewidth, name = "Pulsewidth", desc = "Pulsewidth")
+  # Step 3: Create a LAS object from the data frame
+  las_data <- LAS(point_data)
+  st_crs(las_data) <- 31468  # Set the coordinate reference system (adjust as needed)
   
-  #' Set the coordinate reference system (adjust as needed)
-  st_crs(las_data) <- 31468  
-  
-  #' Step 4: Export the LAS object to a LAS file
-  output_file <- file.path(output_dir, paste0(file_name, ".laz"))
+  # Step 4: Export the LAS object to a LAS file
+  output_file <- file.path(output_dir, paste0(file_name, ".las"))
   writeLAS(las_data, output_file)
   
-  #' Return the output file path for logging purposes
+  # Return the output file path for logging purposes
   return(output_file)
 }
 
-#' Use pbapply for processing all ASC files in parallel:
+# Use pbapply for parallel processing of the ASC files
+output_files <- pblapply(asc_files, process_asc_file)
 
-cluster <- parallel::makeCluster(3)
-
-parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", "read.table", "output_dir", "LAS", 
-                                             "add_lasattribute", "colnames", "st_crs"))
-parallel::clusterEvalQ(cluster, library(lidR)) # Load lidR on all nodes
-parallel::clusterEvalQ(cluster, library(tidyverse)) # Load tidyverse on all nodes
-
-output_files <- pblapply(asc_files_to_process, process_asc_file, cl = cluster)
-
-parallel::stopCluster(cluster)
-
-#' Test:
-test <- readLAS("H:/ALS 2012/Punktwolken_laz/spur00001.laz")
-test@data
+# Print the output file paths
+print(output_files)

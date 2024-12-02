@@ -36,6 +36,7 @@ process_file <- function(file_path) {
   return(output_path)
 }
 
+}
 
 # Set up parallel backend with 2 cores
 n_cores <- 2
