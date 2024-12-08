@@ -20,7 +20,7 @@
 ### Notes ----
 
 #' TO-DO: 
-#' - implement external coordinates
+#' - implement external coordinates from GNSS measurements to calculate UTM32 coordinates
 
 ### Required datasets ----
 
@@ -55,7 +55,7 @@ sd_2_hd <- function(angle_deg, dist_s){
 
 ### Import required datasets ----
 
-#' define path to the data exported by OpenFOris Collect app (excel files)
+#' define path to the data exported by OpenForis Collect app (excel files)
 input_path <- "C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Collect Daten/Export/"
 
 #' import the plot portion of the data:
@@ -67,15 +67,17 @@ gcps <- read_xlsx(paste0(input_path, "gcps.xlsx")) %>%
   rename( "plot_id" = "aufnahme_terrestrischer_laserscanner_plot_id")
 
 #' import the coordinates as measured by differential GNSS (external)
-plot_coordinates <- plot_data %>% 
-  select("plot_id", "koordinate_x", "koordinate_y", "koordinate_altitude") %>% 
-  rename("X_UTM_center" = "koordinate_x", 
-         "Y_UTM_center" = "koordinate_y",
-         "Z_DHHN16_center" = "koordinate_altitude") 
+#' just for testing purposes still:
+
+plot_coordinates <- st_read("C:/Users/jakob/OneDrive/BFNP/Data/Laserscanner Waldinventur/Inventory plots center coordinates/Plots_surveyed_2024-11-19.gpkg") %>% 
+  select("plot_id", "X_UTM", "Y_UTM", "Z_DHHN16") %>% 
+  rename("X_UTM_center" = "X_UTM", 
+         "Y_UTM_center" = "Y_UTM",
+         "Z_DHHN16_center" = "Z_DHHN16") 
+plot_coordinates  
 
 
 ### Pipeline to process the data ----
-plot_data
 
 gcps_coord <- gcps %>%
   #' calculate the horizontal distance:
