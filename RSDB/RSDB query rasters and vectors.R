@@ -118,7 +118,7 @@ ALS_2017.db <- db$pointcloud("ALS_2017-06")
 ALS_2017.points <- ALS_2017.db$points(ext = AOI)
 ALS_2017.points
 
-#' remove scanAngleRank argument
+#' remove unnecessary arguments
 ALS_2017.points$scanAngleRank <- NULL
 ALS_2017.points$classificationFlags <- NULL
 head(ALS_2017.points)
