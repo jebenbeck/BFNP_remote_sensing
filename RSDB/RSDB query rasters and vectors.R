@@ -63,13 +63,14 @@ mapview(Areas_NPBW.poly)
 
 
 
-## 2. Query pointcloud data --------------------------------------------------------------------------------------------
+## 3. Query pointcloud data --------------------------------------------------------------------------------------------
 
 
 ### Large-scale ----
 
+#' WARNING: NOT WORKING YET!
 
-#' Queries point cloud data in large extents by splitting them into 1ha tiles
+#' Queries point cloud data in large extents by splitting them into tiles
 
 #' read AOI:
 HTO_test <- read_sf("C:/Users/Rieser/OneDrive/BFNP/Data/Base data/Bavarian Forest National Park/HTO_test_areas.gpkg")
@@ -132,6 +133,3 @@ ALS_2017.las
 
 #' write to disk:
 writeLAS(ALS_2017.las, "F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten.las")
-
-
-
