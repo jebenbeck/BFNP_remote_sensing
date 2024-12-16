@@ -4,36 +4,81 @@ library(terra)
 library(sf)
 library(exactextractr)
 library(dplyr)
+library(mapview)
+library(pbapply)
 
 
 #' load polygons:
-poly <- st_read("F:/Daten Auerhuhn/GridsBeideBayerwald/quadrat50_gk6orig.shp")
-poly
+poly <- st_read("F:/Daten Auerhuhn/Ausgangsdaten/Grid/GridsBeideBayerwald/quadrat50_gk6orig.shp")
+poly$X <- NULL
+poly$Y <- NULL
+
+mapview(poly)
 
 
 
+## 1. Calculate species distribution -----------------------------------------------------------------------------------
 
-## 1. Mean single tree metrics -----------------------------------------------------------------------------------------
+#' load masks:
+mask_npbw <- st_read("H:/Daten Auerhuhn/NP Daten/NPBW Polygon/Nationalpark_aussengrenze_vor2018.shp")
+mask_npbw$ID <- NULL
 
+mask_nps <- st_read("H:/Daten Auerhuhn/NP Daten/NPS_polygon/NPS_polygon.shp")
+mask_nps$META_ID <- NULL
+mask_nps$TEXT <- NULL
+
+#' buffer:
+mask_nps_buffered <-  st_buffer(mask_nps, 30)
+mask_npbw_buffered <-  st_buffer(mask_npbw, 30)
+
+#' combine mask data:
+mask_full <- st_union(mask_npbw_buffered, mask_nps_buffered, by_feature = F)
+
+#' fill holes:
+mask_final <- nngeo::st_remove_holes(mask_full)
+
+mapview(mask_final)
 
 #' load tree species distribution rasters:
-tsd.rast <- rast("F:/Single tree polygons 2017/04_Cover Rasters_10m/Mosaic/Coverage_tree_types.tif")
+tsd.rast <- rast("H:/Single tree polygons 2017/04_Cover Rasters_10m/Mosaic/TSD_2017_10m.tif")
+
+#' mask to fit area:
+tsd_masked.rast <- mask(tsd.rast, mask = mask_final)
+
+#' export:
+writeRaster(tsd_masked.rast, "H:/Daten Auerhuhn/NP Daten/TSD_2017_10m_masked.tif")
 
 #' extract mean value of raster pixels per area:
-poly_val <- exact_extract(tsd.rast, poly, fun = "mean", progress = T)#na.rm = T
+poly_val <- exact_extract(tsd_masked.rast, poly, fun = "mean", progress = T)
 
 poly_val$mean.snag <- NULL
 names(poly_val) <- c("Anteil_Laubwald", "Anteil_Nadelwald", "Anteil_Totholz")
 
+# Calculate percentage of NA cells under each polygon
+percent_NA <- exact_extract(tsd_masked.rast$deciduous, poly, function(values, coverage_fraction) {
+  total_cells <- sum(coverage_fraction)
+  na_cells <- sum(coverage_fraction[is.na(values)])
+  return(100 * na_cells / total_cells)
+}, progress = T)
+
+#' Replace NA results with 0
+percent_NA[is.na(percent_NA)] <- 0
+
+#' Add the NA percentage as a new attribute to your polygons
+poly_val$Anteil_NA <- percent_NA
+
 #' combine the newly calculated columns with the polygons
-poly_new <- cbind(poly, poly_val)
-plot(poly_new)
-
-poly_new
-head(poly_val)
+poly_tsd <- cbind(poly, poly_val)
+plot(poly_tsd)
+head(poly_tsd)
 
 
-## 2. Mean ALS metrics:
+#' export polygon file:
+st_write(poly_tsd, "H:/Daten Auerhuhn/Ergebnisse/Grid_Baumartenverteilung.gpkg", append = F)
+
+
+
+## 2. Calculate ALS metrics --------------------------------------------------------------------------------------------
 
 
 # ---- Connect to RSDB server ---- #
@@ -44,9 +89,6 @@ source("C:/Users/Rieser/OneDrive/BFNP/Documents/RSDB/RSDB credentials.R")
 
 #' Connect to the server
 db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials) 
-
-
-## 2. Mean ALS metrics ------------------------------------------------------------------------------------------------
 
 
 # ---- Get raster data ---- #
@@ -75,19 +117,88 @@ names(ALS_metrics.rast) <- c("Meereshöhe", "Vegetationshöhe", "Vegetationsdich
                              "Vertikale_Heterogenität")
 names(ALS_metrics.rast)
 
+#' mask the "Vegetationshöhe" band with another one to change 0s to NA:
+plot(ALS_metrics.rast$Vegetationshöhe)
+ALS_metrics.rast$Vegetationshöhe <- mask(ALS_metrics.rast$Vegetationshöhe, ALS_metrics.rast$Meereshöhe)
+plot(ALS_metrics.rast$Vegetationshöhe)
+
 #' export raster to disk:
 terra::writeRaster(ALS_metrics.rast, "F:/Daten Auerhuhn/ALS_metrics_2017_10m.tif", overwrite = T)
 
+ALS_metrics.rast <- rast("F:/Daten Auerhuhn/ALS_metrics_2017_10m.tif")
 
 #' extract mean value of raster pixels per area:
-poly_val_2 <- exact_extract(ALS_metrics.rast, poly_new, fun = "mean", progress = T)
+poly_val_2 <- exact_extract(ALS_metrics.rast, poly, fun = "mean", progress = T)
+
 names(poly_val_2) <- names(ALS_metrics.rast)
 names(poly_val_2)
 
+# Calculate percentage of NA cells under each polygon
+percent_NA <- exact_extract(ALS_metrics.rast$Meereshöhe, poly, function(values, coverage_fraction) {
+  total_cells <- sum(coverage_fraction)
+  na_cells <- sum(coverage_fraction[is.na(values)])
+  return(100 * na_cells / total_cells)
+}, progress = T)
+
+
+#' Replace NA results with 0
+percent_NA[is.na(percent_NA)] <- 0
+
+#' Add the NA percentage as a new attribute to your polygons
+poly_val_2$Anteil_NA <- percent_NA
+
 #' combine the newly calculated columns with the polygons
-poly_new_2 <- cbind(poly_new, poly_val_2)
+poly_new_2 <- cbind(poly, poly_val_2)
 poly_new_2
-plot(poly_new_2, max.plot = 15)
 
 #' export polygon file:
-st_write(poly_new_2, "F:/Daten Auerhuhn/Result/Grid_metrics.gpkg")
+st_write(poly_new_2, "F:/Daten Auerhuhn/Ergebnisse/Grid_Metriken_ALS.gpkg", append = F)
+
+
+
+## 3. Calculate CLC coverage -------------------------------------------------------------------------------------------
+
+
+# Load raster
+CLC.rast <- rast("F:/Daten Auerhuhn/Ausgangsdaten/CLC raster/DATA/U2018_CLC2018_V2020_20u1.tif") 
+
+#' transform polygons to fit raster crs:
+poly_2 <- st_transform(poly, crs = crs(CLC.rast))
+
+#' clip CLC raster to polygon extent:
+CLC_clip.rast <- crop(CLC.rast, ext(poly_2))
+plot(CLC_clip.rast)
+
+calc_proportion_value <- function(value) {
+  #' filter single value:
+  CLC_filtered.rast <- CLC_clip.rast == value
+  #' Extract proportions for raster values:
+  results <- exact_extract(CLC_filtered.rast, poly, function(values, coverage_fraction) {
+    sum(values * coverage_fraction) / sum(coverage_fraction)
+  })
+  return(results)
+}
+
+#' Define the range of values to calculate
+values <- c(23:26, 29)
+
+#' Apply the function to each value using pbapply
+results_list <- pblapply(values, calc_proportion_value)
+
+#' Combine the results into a data frame
+results_df <- as.data.frame(do.call(cbind, results_list))
+
+#' Name the columns with the corresponding values
+colnames(results_df) <- c("Anteil_CLC311_Laubwald", "Anteil_CLC312_Nadelwald", "Anteil_CLC313_Mischwald", 
+                          "Anteil_CLC321_Grasland", "Anteil_CLC324_Strauch")
+
+#' View the resulting data frame
+str(results_df)
+plot(results_df$Anteil_CLC324_Strauch)
+
+#' combine the newly calculated columns with the polygons
+poly_new_3 <- cbind(poly, results_df)
+
+#' export polygon file:
+st_write(poly_new_3, "F:/Daten Auerhuhn/Ergebnisse/Grid_Anteile_CLC.gpkg", append = F)
+
