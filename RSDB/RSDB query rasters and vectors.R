@@ -5,6 +5,7 @@ library(terra)
 library(mapview)
 library(tidyverse)
 library(lidR)
+library(pbapply)
 
 
 
@@ -26,14 +27,14 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 # ---- Get raster data ---- #
 
 #' Select raster database:
-ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2017-06_10m")
+ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2023_07_10m")
 
 #' define AOI (can be any spatial object)
 #' in this case, it is the full extent of the data
 AOI <- ALS_metrics.db$extent
 
 #' query rasterstack of ALS Metrics: 
-ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 15, 36))
+ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 6))
 plot(ALS_metrics.raster)
 
 # ---- Postprocessing ---- #
@@ -82,7 +83,7 @@ ALS_metrics_tiles.rast
 ALS_metrics_merged.rast <- do.call(merge, ALS_metrics_tiles.rast)
 
 #' Export to disk:
-terra::writeRaster(ALS_metrics_merged.rast, "G:/ALS_metrics_2017_10m.tif", overwrite = T)
+terra::writeRaster(ALS_metrics_merged.rast, "G:/ALS_metrics_2023_10m.tif", overwrite = T)
 
 
 
