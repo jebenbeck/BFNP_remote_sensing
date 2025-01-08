@@ -21,6 +21,8 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 ## 1. Query raster data ------------------------------------------------------------------------------------------------
 
 
+### 1.1. Small datasets ----
+
 # ---- Get raster data ---- #
 
 #' Select raster database:
@@ -34,7 +36,6 @@ AOI <- ALS_metrics.db$extent
 ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 15, 36))
 plot(ALS_metrics.raster)
 
-
 # ---- Postprocessing ---- #
 
 #' reproject to coordinate system (if necessary):
@@ -45,6 +46,43 @@ ALS_metrics_prj.rast <- rast(ALS_metrics_prj.raster)
 
 #' export raster stack to disk:
 terra::writeRaster(ALS_metrics_prj.rast, "G:/ALS_metrics_2017_10m.tif", overwrite = T)
+
+
+### 1.2. Large datasets ----
+
+#' sometimes, the data is too large to be stored or downloaded in a single *.tif file and should be downloaded and/or 
+#' stored in tiles instead. The following code cuts the AOI into tiles and downloads them one by one. 
+
+#' Convert the extent object to a SpatialPolygons and then to an sf object
+AOI.sf <- as(AOI, "SpatialPolygons") %>% 
+  st_as_sf(AOI.sp)
+
+#' Set projection to match the source:
+st_crs(AOI.sf) <- ALS_metrics.db$geo_code
+
+#' Cutting the AOI into tiles of 1 km², any size can be chosen (distance of side length in mapping units): 
+AOI_tiles.sf <- st_make_grid(AOI.sf, 1000) %>% 
+  st_as_sf()
+
+#' Function iterating through all tiles and downloading the respective data:
+RSDB_query_raster_tiles <- function(i){
+  #' make the respective tile new AOI:
+  AOI <- raster::extent(AOI_tiles.sf[i,])
+  #' Query the data:
+  raster_data <- ALS_metrics.db$raster(ext = AOI, band = 3)
+  #' convert to rast:
+  return(rast(raster_data))
+}
+
+#' Applying the function with bar tracking the progress:
+ALS_metrics_tiles.rast <- pblapply(1:nrow(AOI_tiles.sf), RSDB_query_raster_tiles)
+ALS_metrics_tiles.rast
+
+#' Merging the rasters:
+ALS_metrics_merged.rast <- do.call(merge, ALS_metrics_tiles.rast)
+
+#' Export to disk:
+terra::writeRaster(ALS_metrics_merged.rast, "G:/ALS_metrics_2017_10m.tif", overwrite = T)
 
 
 
