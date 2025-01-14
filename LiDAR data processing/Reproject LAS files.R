@@ -4,10 +4,7 @@ library(mapview)
 library(tidyverse)
 library(future)
 
-ctg <- readALSLAScatalog("D:/ALS 2012/Test")
-
-x <- readALSLAS("D:/ALS 2012/Test2/spur00001_UTM32.laz")
-
+ctg <- readALSLAScatalog("F:/ALS 2012/Punktwolken_laz")
 
 #' check LAScatalog vailidity:
 las_check(ctg)
@@ -16,7 +13,7 @@ las_check(ctg)
 plot(ctg, mapview = TRUE)
 
 #' define output location and structure of catalog:
-opt_output_files(ctg) <- "D:/ALS 2012/Test2/{ORIGINALFILENAME}_UTM32"
+opt_output_files(ctg) <- "F:/ALS 2012/UTM32/{ORIGINALFILENAME}_UTM"
 opt_laz_compression(ctg) <- TRUE
 opt_chunk_buffer(ctg) <- 0
 opt_chunk_size(ctg) <- 0
@@ -29,9 +26,12 @@ reproject_catalog = function(las)
 }
 
 #' define parallel computation:
-plan(multisession, workers = 2L)
+plan(multisession, workers = 6)
 
 #' apply function to catalog:
 reprojected_ctg = catalog_map(ctg, reproject_catalog)
 
 
+x <- readLAS("F:/ALS 2012/UTM32/spur00001_UTM.laz")
+x@data
+x
