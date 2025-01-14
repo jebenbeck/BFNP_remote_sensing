@@ -12,7 +12,7 @@ library(pbapply)
 # ---- Connect to RSDB server ---- #
 
 #' Provide the login-credentials in an local R file on your computer or via an object (format: "username:password")
-credentials <- "username:password"
+source("C:/Users/jakob/OneDrive/BFNP/Documents/RSDB/RSDB credentials.R")
 
 #' Connect to the server
 db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials) 
@@ -23,6 +23,7 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 
 
 ### 1.1. Small datasets ----
+
 
 # ---- Get raster data ---- #
 
@@ -35,21 +36,23 @@ AOI <- ALS_metrics.db$extent
 
 #' query rasterstack of ALS Metrics: 
 ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 6))
-plot(ALS_metrics.raster)
+
 
 # ---- Postprocessing ---- #
 
-#' reproject to coordinate system (if necessary):
-ALS_metrics_prj.raster <- projectRaster(from = ALS_metrics.raster, crs = "EPSG:25833")
-
 #' convert to terra raster object (to preserve the layer names):
-ALS_metrics_prj.rast <- rast(ALS_metrics_prj.raster)
+ALS_metrics.rast <- rast(ALS_metrics.raster)
+
+#' reproject/assign coordinate system (if necessary):
+terra::crs(ALS_metrics.rast) <- ALS_metrics.db$geo_code
 
 #' export raster stack to disk:
-terra::writeRaster(ALS_metrics_prj.rast, "G:/ALS_metrics_2017_10m.tif", overwrite = T)
+terra::writeRaster(ALS_metrics.rast, "C:/Users/jakob/Desktop/temp/ALS_metrics_2023_10m.tif", overwrite = T)
+
 
 
 ### 1.2. Large datasets ----
+
 
 #' sometimes, the data is too large to be stored or downloaded in a single *.tif file and should be downloaded and/or 
 #' stored in tiles instead. The following function cuts the AOI into tiles and downloads them one by one. 
@@ -59,7 +62,8 @@ terra::writeRaster(ALS_metrics_prj.rast, "G:/ALS_metrics_2017_10m.tif", overwrit
 #' 2) AOI can be the character string "full" which returns the full extent of the rasterdb or a spatial polygon 
 #' object (type st/sf) resulting from gpkg or shp files. In this case the path to the file needs to be pasted here.
 #' 3) tilesize is the length of the tile sides in x and y directions corresponding to mapping units (usually meters)
-#' 4) bands can be one number or a vector of numbers corresponding to the bands/layers of the rasterdb that should be downloaded 
+#' 4) bands can be one number or a vector of numbers corresponding to the bands/layers of the rasterdb that should be 
+#'    downloaded 
 
 RSDB_query_raster_tiles <- function(rasterdb_name, AOI, tilesize, bands) {
   
@@ -152,16 +156,22 @@ mapview(Areas_NPBW.poly)
 
 
 #' read AOI:
-AOI <- read_sf("F:/Testdaten Befliegungen 2023/AOIs_Testdaten_Befliegungen.gpkg") %>% 
-  filter(Gebiet == "Sulzschachten") %>% 
-  extent()
+AOI.sf <- read_sf("H:/Testdaten Befliegungen/AOIs_Testdaten_Befliegungen.gpkg") %>% 
+  filter(Gebiet == "Sulzschachten") 
+
+mapview(AOI.sf)
+
+#' make extent object:
+AOI <- extent(AOI.sf)
 
 # Select a ALS acquisition
 ALS_2017.db <- db$pointcloud("ALS_2017-06")
 
 #' querry the points:
 ALS_2017.points <- ALS_2017.db$points(ext = AOI)
-ALS_2017.points
+
+#' check the data:
+str(ALS_2017.points)
 
 #' remove unnecessary arguments
 ALS_2017.points$scanAngleRank <- NULL #' needed because LAS standard can not deal with the way it is stored
@@ -169,11 +179,15 @@ ALS_2017.points$classificationFlags <- NULL
 head(ALS_2017.points)
 
 #' convert dataframe to LAS:
-ALS_2017.las <- RSDB::as.LAS(ALS_2017.points, proj4string = ALS_2017.db$proj4)
-
-#' change the projection:
-projection(ALS_2017.las)<- "EPSG:32632"
+ALS_2017.las <- RSDB::as.LAS(ALS_2017.points)
 ALS_2017.las
 
-#' write to disk:
-writeLAS(ALS_2017.las, "F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten.las")
+#' assign the projection:
+projection(ALS_2017.las) <- ALS_2017.db$geocode
+ALS_2017.las
+
+#' take a look at the data:
+plot(ALS_2017.las)
+
+#' export to disk:
+writeLAS(ALS_2017.las, "C:/Users/jakob/Desktop/temp/ALS_2017_Sulzschachten.las")
