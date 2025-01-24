@@ -3,6 +3,7 @@ library(sf)
 library(mapview)
 library(tidyverse)
 
+
 ## 1. Try different approaches -----------------------------------------------------------------------------------------
 
 LAS_GK <- readALSLAS("H:/Reproject ALS Data test/Base data/2017_AOI.laz")
@@ -62,7 +63,3 @@ plan(multisession, workers = 6)
 #' apply function to catalog:
 reprojected_ctg = catalog_map(ctg, reproject_catalog)
 
-
-x <- readLAS("F:/ALS 2012/UTM32/spur00001_UTM.laz")
-x@data
-x
