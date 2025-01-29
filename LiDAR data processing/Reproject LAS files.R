@@ -2,7 +2,7 @@ library(lidR)
 library(sf)
 library(mapview)
 library(tidyverse)
-
+library(future)
 
 ## 1. Try different approaches -----------------------------------------------------------------------------------------
 
@@ -50,19 +50,55 @@ writeLAS(LAS_UTM_Waldhäuser_Kanu, "H:/Reproject ALS Data test/LiDAR UTM/LAS_UTM
 
 
 
+#' lidar GK
+
+LAS_GK <- readALSLAS("H:/Reproject ALS Data test/LiDAR GK/NPV_01266.laz")
+st_crs(LAS_GK) <- 31468
+LAS_GK
+
+AOI_GK <- st_read("H:/Reproject ALS Data test/AOI.gpkg", layer = "AOI_Lusen_GK")
+AOI_GK
+
+LAS_GK_AOI <- lidR::clip_roi(LAS_GK, st_geometry(AOI_GK))
+plot(LAS_GK_AOI)
+
+writeLAS(LAS_GK_AOI, "H:/Reproject ALS Data test/LiDAR GK/2017_Lusen.laz")
+
 
 ## 2.Implemented into Lascatalog ---------------------------------------------------------------------------------------
 
-ctg <- readALSLAScatalog("F:/ALS 2012/Punktwolken_laz")
+### 2.1. Make general setting for sf to be able to use the correct transformation method ----
+
+#' check set up of sf package:
+sf_proj_search_paths()
+sf_extSoftVersion()
+
+#' set options to be able to use transformation grids already implemented::
+sf_proj_network(enable = T)
+
+#' get transformation options available with grid:
+options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832")
+View(options)
+
+#' select correct pipeline:
+pipeline_BETA2007 <- options[1,]$definition
+
+#' read Lascatalog:
+ctg <- readALSLAScatalog("H:/Reproject ALS Data test/LiDAR GK")
 
 #' check LAScatalog vailidity:
+ctg
+plot(ctg, mapview = T)
 las_check(ctg)
+st_crs(ctg) <- 31468
 
 #' plot LAScatalog:
 plot(ctg, mapview = TRUE)
 
 #' define output location and structure of catalog:
-opt_output_files(ctg) <- "F:/ALS 2012/UTM32/{ORIGINALFILENAME}_UTM"
+
+
+opt_output_files(ctg) <- "H:/Reproject ALS Data test/LiDAR UTM/Catalog output/{ORIGINALFILENAME}_UTM"
 opt_laz_compression(ctg) <- TRUE
 opt_chunk_buffer(ctg) <- 0
 opt_chunk_size(ctg) <- 0
@@ -70,7 +106,7 @@ opt_chunk_size(ctg) <- 0
 #' function to reproject las data:
 reproject_catalog = function(las)
 {
-  las_trans = st_transform(las, "epsg:25832")
+  las_trans = st_transform(las, crs = 25832, pipeline = pipeline_BETA2007)
   return(las_trans)
 }
 
@@ -79,4 +115,3 @@ plan(multisession, workers = 6)
 
 #' apply function to catalog:
 reprojected_ctg = catalog_map(ctg, reproject_catalog)
-
