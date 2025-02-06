@@ -7,7 +7,6 @@ sf_proj_search_paths()
 sf_extSoftVersion()
 sf_proj_network(enable = T)
 
-R.version
 #' get transformation options available with grid:
 options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832")
 
@@ -23,6 +22,9 @@ pipeline_BETA2007
 #' read Lascatalog:
 ctg <- readALSLAScatalog("F:/Reproject ALS Data test/LiDAR GK")
 
+#' apply epsg code:
+st_crs(ctg) <- 31468
+
 #' check LAScatalog vailidity:
 ctg
 las_check(ctg)
@@ -31,7 +33,7 @@ las_check(ctg)
 plot(ctg, mapview = TRUE)
 
 #' define output location and structure of catalog:
-opt_output_files(ctg) <- "F:/Reproject ALS Data test/LiDAR UTM/Output Catalog PC1/{ORIGINALFILENAME}_UTM"
+opt_output_files(ctg) <- "F:/Reproject ALS Data test/LiDAR UTM/Output Catalog PC2/{ORIGINALFILENAME}_UTM"
 opt_laz_compression(ctg) <- TRUE
 opt_chunk_buffer(ctg) <- 0
 opt_chunk_size(ctg) <- 0
@@ -39,7 +41,7 @@ opt_chunk_size(ctg) <- 0
 #' function to reproject las data:
 reproject_catalog = function(las)
 {
-  las_trans = sf::st_transform(las, crs = 25832, pipeline = pipeline_BETA2007)
+  las_trans = sf::st_transform(las, crs = 25832, pipeline = pipeline_KANU)
   return(las_trans)
 }
 
