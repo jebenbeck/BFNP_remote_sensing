@@ -43,12 +43,16 @@ View(options)
 
 #' run new default transformation:
 rp_transformed_default_network <- st_transform(rp_GK, crs = 25832)
+rp_transformed_default_network
 
 #' select BETA2007 transformation options:
-pipeline_BETA2007 <- "+proj=pipeline +step +inv +proj=tmerc +lat_0=0 +lon_0=12 +k=1 +x_0=4500000 +y_0=0 +ellps=bessel +step +proj=hgridshift +grids=de_adv_BETA2007.tif +step +proj=utm +zone=32 +ellps=GRS80"
+pipeline_BETA2007 <- options[1,]$definition
+pipeline_BETA2007
+
+rp_transformed_BETA2007 <- st_transform(rp_GK, crs = 25832, pipeline = pipeline_BETA2007)
+rp_transformed_BETA2007
 
 #' apply different transformations:
-rp_transformed_BETA2007 <- st_transform(rp_GK, pipeline = pipeline_BETA2007)
 
 
 
@@ -69,6 +73,8 @@ calculate_accurracy <- function(rp_transformed, transformation_name){
 
 accurracy_default <- calculate_accurracy(rp_transformed_default, "default")
 accurracy_default_network <- calculate_accurracy(rp_transformed_default_network, "default_network")
+accurracy_BETA2007 <- calculate_accurracy(rp_transformed_BETA2007, "BETA2007")
 
 boxplot(accurracy_default)
 boxplot(accurracy_default_network)
+boxplot(accurracy_BETA2007)
