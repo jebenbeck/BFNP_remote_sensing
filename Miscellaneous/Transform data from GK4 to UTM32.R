@@ -1,8 +1,8 @@
-Sys.setenv("PROJ_NETWORK"="ON")
-
 library(sf)
 library(mapview)
 library(tidyverse)
+library(pbapply)
+
 
 #' get ground reference points data in GK and UTM:
 reference_points <- read.csv("D:/Reproject ALS Data test/Transformation grids/KANU/Testpunkte_Echtumstellung.csv", sep = ";") %>% 
@@ -11,55 +11,31 @@ reference_points <- read.csv("D:/Reproject ALS Data test/Transformation grids/KA
          "GK4_X" = "R.GK4.",
          "GK4_Y" = "H.GK4.")
 
+#' convert to sf object:
 rp_GK <- st_as_sf(reference_points, coords = c("GK4_X", "GK4_Y"), crs = st_crs(31468), remove = F)
 
+#' plot:
 mapview(rp_GK)
 
 
 ## Transformations -----------------------------------------------------------------------------------------------------
-
-
-### Without network connection (default bahavior) ----
-
-
-#' check set up of sf package:
-sf_proj_search_paths()
-sf_extSoftVersion()
-sf_proj_network() #' should be FALSE, if not run: sf_proj_network(enable = F)
-
-#' run default transformation:
-rp_transformed_default <- st_transform(rp_GK, crs = 25832)
-
-
-### With network connection enabled ----
-
 
 #' connect to proj library:
 sf_proj_network(enable = T)
 
 #' get transformation options available with grid:
 options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832")
-View(options)
+options[1,]
 
 #' run new default transformation:
-rp_transformed_default_network <- st_transform(rp_GK, crs = 25832)
-rp_transformed_default_network
-
-#' select BETA2007 transformation options:
-pipeline_BETA2007 <- options[1,]$definition
-pipeline_BETA2007
-
-rp_transformed_BETA2007 <- st_transform(rp_GK, crs = 25832, pipeline = pipeline_BETA2007)
-rp_transformed_BETA2007
-
-#' apply different transformations:
-
+rp_transformed <- st_transform(rp_GK, crs = 25832)
+rp_transformed
 
 
 ## Calculate the accurracy -----------------------------------------------------------------------------------------------------
 
 
-#' calculate the accurracy of the different transformations:
+#' calculate the accurracy of the transformation:
 calculate_accurracy <- function(rp_transformed, transformation_name){
   rp_transformed %>% mutate(UTM32_X_transformed = st_coordinates(.)[,1],
                             UTM32_Y_transformed = st_coordinates(.)[,2],
@@ -71,10 +47,48 @@ calculate_accurracy <- function(rp_transformed, transformation_name){
     rename_with(~ paste0(., "_", transformation_name))
   }
 
-accurracy_default <- calculate_accurracy(rp_transformed_default, "default")
-accurracy_default_network <- calculate_accurracy(rp_transformed_default_network, "default_network")
-accurracy_BETA2007 <- calculate_accurracy(rp_transformed_BETA2007, "BETA2007")
+accurracy_default <- calculate_accurracy(rp_transformed, "default")
 
+#' plot the accuracy:
 boxplot(accurracy_default)
-boxplot(accurracy_default_network)
-boxplot(accurracy_BETA2007)
+
+
+
+## Parallel processing ----------------------------------------------------------------------------------------------------------
+
+
+#' make list to apply parallel:
+file_list <- replicate(10, rp_GK, simplify = FALSE)
+
+#' Use pbapply for processing files in parallel:
+
+reproject_files <- function(file){
+  
+  #' transform las data:
+  file_transformed <- sf::st_transform(file, crs = 25832)
+  
+  #' export the LAS object to a LAS file
+  output_file <- file_transformed %>% mutate(UTM32_X_transformed = st_coordinates(.)[,1],
+                                           UTM32_Y_transformed = st_coordinates(.)[,2],
+                                           X_difference = abs(UTM32_X - UTM32_X_transformed),
+                                           Y_difference = abs(UTM32_Y - UTM32_Y_transformed),
+                                           .before = geometry) %>% 
+    st_drop_geometry() %>% 
+    select(X_difference, Y_difference)
+  
+  return(output_file)
+}
+
+
+cluster <- parallel::makeCluster(4)
+
+#parallel::clusterExport(cluster)
+parallel::clusterEvalQ(cluster, library(tidyverse)) # Load lidR on all nodes
+parallel::clusterEvalQ(cluster, library(sf)) # Load tidyverse on all nodes
+
+output_files <- pblapply(file_list, reproject_files, cl = cluster)
+
+parallel::stopCluster()
+
+
+boxplot(output_files[[5]])
