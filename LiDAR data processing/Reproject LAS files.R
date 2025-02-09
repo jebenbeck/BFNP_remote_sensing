@@ -4,17 +4,11 @@ library(mapview)
 library(future)
 library(pbapply)
 
-#' check set up of sf package:
-sf_proj_search_paths()
-sf_extSoftVersion()
 sf_proj_network(enable = T)
 
 #' get transformation options available with grid:
 options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832")
-
-#' select correct pipeline:
-pipeline_BETA2007 <- options[1,]$definition
-pipeline_BETA2007
+View(options)
 
 
 
@@ -23,8 +17,6 @@ pipeline_BETA2007
 
 #' set up parallel processing with 6 cores:
 plan(multisession, workers = 4)
-plan(sequential)
-lidR::set_lidr_threads(4L)
 
 #' read Lascatalog:
 ctg <- readALSLAScatalog("F:/Reproject ALS Data test/LiDAR GK/Originaldaten_subset")
@@ -32,8 +24,12 @@ ctg <- readALSLAScatalog("F:/Reproject ALS Data test/LiDAR GK/Originaldaten_subs
 #' apply epsg code:
 st_crs(ctg) <- 31468
 
-#' apply epsg code:
-st_crs(ctg) <- 31468
+#' define output location and structure of catalog:
+opt_output_files(ctg) <- "F:/Reproject ALS Data test/LiDAR UTM/test3/{ORIGINALFILENAME}_UTM"
+opt_laz_compression(ctg) <- TRUE
+opt_chunk_buffer(ctg) <- 0
+opt_chunk_size(ctg) <- 0
+opt_independent_files(ctg) <- TRUE
 
 #' check LAScatalog vailidity:
 ctg
@@ -43,18 +39,13 @@ las_check(ctg)
 #' plot LAScatalog:
 plot(ctg, mapview = TRUE)
 
-#' define output location and structure of catalog:
 
-opt_output_files(ctg) <- "F:/Reproject ALS Data test/LiDAR UTM/Output Catalog PC2/{ORIGINALFILENAME}_UTM"
 
-opt_laz_compression(ctg) <- TRUE
-opt_chunk_buffer(ctg) <- 0
-opt_chunk_size(ctg) <- 0
 
 #' function to reproject las data:
 reproject_catalog = function(las)
 {
-  las_trans = sf::st_transform(las, crs = 25832, pipeline = pipeline_KANU)
+  las_trans = sf::st_transform(las, crs = "EPSG:25832")
   return(las_trans)
 }
 
