@@ -1,6 +1,6 @@
 # Header --------------------------------------------
 # 
-# Original Author: Jakob Rieser, jakob.rieser@npv-bw.bayern.de
+# Original Author: Jakob Ebenbeck, jakob.ebenbeck@npv-bw.bayern.de
 # Created on: 2023-02-21
 # 
 # Last modified by:
