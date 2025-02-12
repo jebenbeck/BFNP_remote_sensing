@@ -64,6 +64,8 @@ reproject_lascatalog <- function(lascatalog, input_epsg, output_epsg, output_pat
   return(reprojected_catalog)
 }
 
+### Apply function ----
+
 #' read Lascatalog:
 ctg <- readALSLAScatalog("D:/Reproject ALS Data test/LiDAR GK/Originaldaten_subset")
 
