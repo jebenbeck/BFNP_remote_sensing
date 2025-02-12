@@ -1,10 +1,5 @@
-library(lidR)
-library(sf)
-library(mapview)
-library(future)
 
-
-## LAScatalog function -------------------------------------------------------------------------------------------------
+## Reproject LasCatalog ------------------------------------------------------------------------------------------------
 
 
 #' This is a function to transform the coordinate system of a lascatalog. It is specialized for large-scale ALS data (many flight lines / tiles).
@@ -40,10 +35,10 @@ reproject_lascatalog <- function(lascatalog, input_epsg, output_epsg, output_pat
     #' ckech if transformation grid exists:
     if (file.exists(paste0(sf_proj_search_paths(), "/de_adv_BETA2007.tif")) == T) {
       message ("BETA 2007 transformation grid found and will be used")
-      } else {
-        warning("BETA 2007 transformation grid not found, accurracy of transformation will be compromized", call. = F, immediate. = T)
-      }
+    } else {
+      warning("BETA 2007 transformation grid not found, accurracy of transformation will be compromized", call. = F, immediate. = T)
     }
+  }
   
   #' function to reproject las data:
   reproject = function(las){
@@ -63,22 +58,3 @@ reproject_lascatalog <- function(lascatalog, input_epsg, output_epsg, output_pat
   reprojected_catalog = catalog_map(lascatalog, reproject)
   return(reprojected_catalog)
 }
-
-### Apply function ----
-
-#' read Lascatalog:
-ctg <- readALSLAScatalog("D:/Reproject ALS Data test/LiDAR GK/Originaldaten_subset")
-
-#' check LAScatalog vailidity:
-ctg
-summary(ctg)
-las_check(ctg)
-
-#' plot LAScatalog:
-plot(ctg)
-
-#' apply the transformation:
-ctg_UTM32 <- reproject_lascatalog(lascatalog = ctg,
-                     input_epsg = "EPSG:31468",
-                     output_epsg = "EPSG:25832", 
-                     output_path = "D:/Reproject ALS Data test/LiDAR UTM/test3")
