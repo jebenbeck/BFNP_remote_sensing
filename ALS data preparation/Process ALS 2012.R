@@ -2,37 +2,50 @@
 
 
 #' Author: Jakob Ebenbeck
-#' Last updated: 25.11.2024
+#' Last updated: 2025
 #' Status: Work in progress 
 
 
 ### Purpose of script ----
 
-#' Takes all LiDAR Point Clouds stored in ASC format in folder and converts them to LAZ
-#' Works specifically with the data acquired by ALS in 2012 in the BFNP.
 
 ### Notes ----
 
-#' Currently, there is one column where it is unclear what it is. It cannot be determined based on the documentation
-#' For now this line is skipped in the output
 
 ### Required datasets ----
 
-#' Point clouds in ASC format
 
 ### Required packages ----
 
 library(lidR)
-library(pbapply)
+library(sf)
+library(mapview)
+library(future)
 library(tidyverse)
+library(pbapply)
+
+### Required functions and scripts ----
+
+source("ALS data preparation/Processing functions master.R")
+
+### Set working directories ----
+
+#' set wd of drive where the ALS 2017 database is stored. Must be changed when switching PCs
+
+path_drive <- "D:/"
 
 
-## Skript --------------------------------------------------------------------------------------------------------------
+
+## 1. Convert ASCII files to LAS ---------------------------------------------------------------------------------------
 
 
-#' Specify input and output directories
-input_dir <- "F:/ALS 2012/Punktwolken_asc/"
-output_dir <- "F:/ALS 2012/Punktwolken_laz/"
+#' Takes all LiDAR Point Clouds stored in ASC format in folder and converts them to LAZ
+#' Works specifically with the data acquired by ALS in 2012 in the BFNP.
+
+
+#' Specify input and output paths:
+input_dir <- paste0(path_drive, "ALS 2012/Punktwolken_asc/")
+output_dir <- paste0(path_drive, "ALS 2012/Punktwolken_laz/")
 
 #' number of files to process (only for testing)
 n_files <- 0
@@ -87,7 +100,6 @@ process_asc_file <- function(asc_file) {
 }
 
 #' Use pbapply for processing all ASC files in parallel:
-
 cluster <- parallel::makeCluster(4)
 
 parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", "read.table", "output_dir", "LAS", 
@@ -99,6 +111,6 @@ output_files <- pblapply(asc_files_to_process, process_asc_file, cl = cluster)
 
 parallel::stopCluster(cluster)
 
-#' Test:
-test <- readLAS("F:/ALS 2012/Punktwolken_laz/spur00001.laz")
-test@data
+
+
+## 2. Reproject to UTM32 -----------------------------------------------------------------------------------------------
