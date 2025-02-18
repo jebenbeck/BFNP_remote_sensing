@@ -51,16 +51,19 @@ grid <- st_as_sf(st_make_grid(bbox, cellsize = 1000, what = "polygons"))
 bbox_list <- lapply(st_geometry(grid), st_bbox)
 
 #' Convert the coordinates to df:
-maxmin <- as.data.frame(matrix(unlist(bbox_list),nrow=nrow(grid), byrow = T ))
+maxmin <- as.data.frame(matrix(unlist(bbox_list), nrow=nrow(grid), byrow = T ))
 names(maxmin) <- names(bbox_list[[1]])
 
 #' Construct name for each tile:
-maxmin$tile_name <- paste0(substr(maxmin$xmin, 1, 3),
-                      "_",
-                      substr(maxmin$ymin, 1, 4))
+maxmin$tile_name <- paste0(as.character(format(maxmin$xmin), scientific = F), 
+                           "_", 
+                           as.character(format(maxmin$ymin), scientific = F))
 
 #' Add name to spatial grid:
-grid$tile_name <- maxmin$tile_name
+grid$Tile.name <- maxmin$tile_name
+
+#' check:
+mapview(grid)
 
 #' Export grid to disc:
-st_write(grid, "C:/Users/NBW-Ebenbeck_J/Downloads/ALS_data_tiles.gpkg", append = F)
+st_write(grid, "C:/Users/NBW-Ebenbeck_J/Downloads/ALS_tiles.gpkg", layer = "Overview", append = F)
