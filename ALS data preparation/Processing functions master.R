@@ -49,7 +49,7 @@ reproject_lascatalog <- function(lascatalog, input_epsg, output_epsg, output_pat
   #' plan parallel processing
   if (parallel == TRUE) {
     plan(multisession, workers = n_cores)
-    message("Parallel processing will be used with", ncores, "cores")
+    message("Parallel processing will be used with", n_cores, "cores")
   } else {
     warning("No parallel processing in use", call. = F, immediate. = T)
   }
@@ -67,7 +67,7 @@ reproject_lascatalog <- function(lascatalog, input_epsg, output_epsg, output_pat
 catalog_to_polygons <- function(clg) {
   ctg_polygons <- st_as_sf(clg) %>% 
     #' convert filename to tile name:
-    mutate(Tile.name = str_extract(filename, "[^\\\\]+(?=\\.laz$)"), .before = everything()) %>% 
+    mutate(Tile.name = tools::file_path_sans_ext(basename(filename)), .before = everything()) %>% 
     #' remove unecessary attributes:
     select(-c(File.Signature, File.Source.ID, File.Creation.Year, File.Creation.Day.of.Year, GUID, Version.Major, Version.Minor, System.Identifier,
               Generating.Software, Header.Size, Offset.to.point.data, Number.of.variable.length.records, Point.Data.Format.ID, Point.Data.Record.Length,
@@ -85,7 +85,7 @@ catalog_to_polygons <- function(clg) {
 
 ## 3. Calculate point density of lascatalog files ----------------------------------------------------------------------
 
-catalog_statistics <- function(lascatalog){
+catalog_statistics <- function(lascatalog, parallel = F, n_cores = 2){
   
   #' set catalog options:
   opt_select(lascatalog) <- "xy" #' read only xy because they are the only attributes of interest
@@ -113,11 +113,18 @@ catalog_statistics <- function(lascatalog){
                  Tile.min.X = extent_tile[1, 1],
                  Tile.max.Y = extent_tile[2, 2],
                  Tile.min.Y = extent_tile[2, 1])
-    
     return(df)
   }
   
-  #' perform the calculation:
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message("Parallel processing will be used with", n_cores, "cores")
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to catalog:
   statistics <- catalog_apply(lascatalog, calc_statistics)
   #' merge the results to a single data frame:
   statistics_merged_df <- bind_rows(statistics)
