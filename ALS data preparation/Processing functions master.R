@@ -76,7 +76,8 @@ catalog_to_polygons <- function(clg) {
     rename("Number.of.points" = "Number.of.point.records") %>% 
     #' restructure:
     relocate(CRS, .after = Tile.name) %>% 
-    relocate(Number.of.points, .before = Number.of.1st.return)
+    relocate(Number.of.points, .before = Number.of.1st.return) %>% 
+    relocate(starts_with("Number.of"), .before = CRS)
   
   return(ctg_polygons)
 }
@@ -102,7 +103,7 @@ catalog_statistics <- function(lascatalog, parallel = F, n_cores = 2){
     #' calculate area covered by convex hull (not bbox):
     area = area(las)
     #' extract tile name from file (for merging information to other data later):
-    tilename = str_extract(chunk@files, "[^\\\\]+(?=\\.laz$)")
+    tilename = tools::file_path_sans_ext(basename(chunk@files))
     #' extract extent of full tile:
     extent_tile <- chunk@bbox
     #' make data frame with necessary information:

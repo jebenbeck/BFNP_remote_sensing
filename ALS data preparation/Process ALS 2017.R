@@ -81,14 +81,19 @@ plot(ctg_UTM32_retiled, mapview = T)
 ## 3. Generate footprint polygons --------------------------------------------------------------------------------------
 
 #' read LasCatalog:
-ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/3_pointclouds_retiled"))
+ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/test"))
 
 # convert catalog to polygons ----
 ctg_polygons <- catalog_to_polygons(ctg_UTM32_retiled)
-mapview(ctg_polygons)
 
 #' calculate statistics on catalog:
 ctg_UTM32_stats <- catalog_statistics(ctg_UTM32_retiled, parallel = T, n_cores = 3)
+
+#' merge the data: 
+ctg_polygons_stats <- left_join(ctg_polygons, ctg_UTM32_stats) %>% 
+  relocate(c(Point.density, Area.covered), .after = Tile.name) %>% 
+  relocate(c(Tile.max.X, Tile.min.X, Tile.max.Y, Tile.min.Y), .after = Min.Z)
+ctg_polygons_stats
 
 #' export polygon file to geopackage:
 st_write(ctg_polygons, dsn = paste0(path_drive, "Tiles.gpkg"), layer = "ALS_2017" , append = T)
