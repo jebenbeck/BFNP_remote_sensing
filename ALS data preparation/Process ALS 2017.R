@@ -22,6 +22,7 @@ library(sf)
 library(mapview)
 library(future)
 library(tidyverse)
+library(stringr)
 
 ### Required functions and scripts ----
 
@@ -50,7 +51,7 @@ plot(ctg)
 ctg_UTM32 <- reproject_lascatalog(lascatalog = ctg,
                                   input_epsg = "EPSG:31468",
                                   output_epsg = "EPSG:25832", 
-                                  output_path = paste0(path_drive, "Reproject ALS Data test/LiDAR UTM/test3"))
+                                  output_path = paste0(path_drive, "ALS 2017/2_pointclouds_UTM"))
 
 #' check LAScatalog validity:
 summary(ctg_UTM32)
@@ -58,25 +59,36 @@ las_check(ctg_UTM32)
 plot(ctg_UTM32)
 
 
-### Export catalog polygons ----
-
-#' Make the polygons:
+# export catalog polygons ----
 ctg_polygons <- catalog_to_polygons(ctg_UTM32)
-ctg_polygons
 
 #' export polygon file to geopackage:
 st_write(ctg_polygons, dsn = paste0(path_drive, "Tiles.gpkg"), layer = "ALS_2017" , append = T)
 
 
-### Calculate statistics ----
-
-test <- catalog_statistics(ctg_UTM32)
-test$Tile.name
-ctg_polygons$Tile.name
-
-#' merge the two datasets: 
-
 
 ## 2. Retile catalog ---------------------------------------------------------------------------------------------------
 
-ctg_UTM32_retiled <- catalog_retiling(lascatalog = ctg_UTM32, output_path = paste0(path_drive, "Reproject ALS Data test/LiDAR UTM/test_retile"))
+ctg_UTM32_retiled <- catalog_retiling(lascatalog = ctg_UTM32, output_path = paste0(path_drive, "ALS_2017/3_pointclouds_retiled"))
+
+#' check LAScatalog validity:
+ctg_UTM32_retiled
+summary(ctg_UTM32_retiled)
+las_check(ctg_UTM32_retiled)
+plot(ctg_UTM32_retiled, mapview = T)
+
+
+## 3. Generate footprint polygons --------------------------------------------------------------------------------------
+
+#' read LasCatalog:
+ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/3_pointclouds_retiled"))
+
+# convert catalog to polygons ----
+ctg_polygons <- catalog_to_polygons(ctg_UTM32_retiled)
+mapview(ctg_polygons)
+
+#' calculate statistics on catalog:
+ctg_UTM32_stats <- catalog_statistics(ctg_UTM32_retiled, parallel = T, n_cores = 3)
+
+#' export polygon file to geopackage:
+st_write(ctg_polygons, dsn = paste0(path_drive, "Tiles.gpkg"), layer = "ALS_2017" , append = T)
