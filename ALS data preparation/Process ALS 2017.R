@@ -83,7 +83,7 @@ plot(ctg_UTM32_retiled, mapview = T)
 #' read LasCatalog:
 ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/test"))
 
-# convert catalog to polygons ----
+# convert catalog to polygons:
 ctg_polygons <- catalog_to_polygons(ctg_UTM32_retiled)
 
 #' calculate statistics on catalog:
