@@ -44,8 +44,11 @@ path_drive <- "D:/"
 
 
 #' Specify input and output paths:
-input_dir <- paste0(path_drive, "ALS 2012/Punktwolken_asc/")
-output_dir <- paste0(path_drive, "ALS 2012/Punktwolken_laz/")
+#input_dir <- paste0(path_drive, "ALS 2012/Punktwolken_asc/")
+input_dir <- "C:/Users/NBW-Ebenbeck_J/Desktop"
+#output_dir <- paste0(path_drive, "ALS 2012/Punktwolken_laz/")
+output_dir <- "C:/Users/NBW-Ebenbeck_J/Desktop"
+
 
 #' number of files to process (only for testing)
 n_files <- 0
@@ -107,10 +110,37 @@ parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", 
 parallel::clusterEvalQ(cluster, library(lidR)) # Load lidR on all nodes
 parallel::clusterEvalQ(cluster, library(tidyverse)) # Load tidyverse on all nodes
 
-output_files <- pblapply(asc_files_to_process, process_asc_file, cl = cluster)
+#output_files <- pblapply(asc_files_to_process, process_asc_file, cl = cluster)
+output_files <- pblapply(asc_files_to_process, process_asc_file)
 
 parallel::stopCluster(cluster)
 
 
 
-## 2. Reproject to UTM32 -----------------------------------------------------------------------------------------------
+## 2. Add number of returns argument ---------------------------------------------------------------------------
+
+
+test <- readALSLAS("C:/Users/NBW-Ebenbeck_J/Desktop/spur00497.laz")
+
+calculate_nReturns <- function(las_file) {
+  las_data <- las_file@data %>% 
+    select(ReturnNumber) %>% 
+    mutate(pulse_id = cumsum(ReturnNumber == 1)) %>%  #' create a unique pulse ID
+    group_by(pulse_id) %>%                            #' group by pulse ID 
+    mutate(NumberOfReturns = max(ReturnNumber)) %>%   #' assign max return number per pulse
+    ungroup() %>%
+    select(-pulse_id, -ReturnNumber) %>% 
+    unlist()
+  
+  #' add data to las file as argument:
+  las_file$NumberOfReturns <- las_data
+  
+  return(las_file)
+}
+
+test_2 <- calculate_nReturns(test)
+
+head(test@data)
+
+
+## 3. Reproject to UTM32 -----------------------------------------------------------------------------------------------
