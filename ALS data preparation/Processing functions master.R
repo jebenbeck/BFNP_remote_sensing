@@ -156,3 +156,35 @@ catalog_retiling <- function(lascatalog, tile_alignment = c(0,0), tile_size = 10
   #' perform the retiling:
   ctg_retiled <- catalog_retile(lascatalog) 
 }
+
+
+
+## 5. Clip AOIs --------------------------------------------------------------------------------------------------------
+
+
+#' to check the spatial accurracy between the different datasets, AOIs are used. This function generates multiple output
+#' LAZ files based on input polygons (one file per polygon). 
+
+catalog_clip_polygons <- function(lascatalog, input_epsg, output_path, filename_convention = "{ID}", polygons) {
+  
+  #' check projection if needed:
+  if (is.na(st_crs(lascatalog))) {
+    warning(paste("LasCatalog does not have an assigned projection, input_epsg", input_epsg, "will be used"), call. = F, immediate. = T)
+    st_crs(lascatalog) <- input_epsg
+  }
+  
+  if (st_crs(polygons) != st_crs(lascatalog)){
+    warning("CRS of input polygons and lascatalog differ. Polygons are reprojected to match input CRS")
+    polygons <- sf::st_transform(polygons,  crs = input_epsg)
+  } 
+  
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_independent_files(lascatalog) <- TRUE
+  
+  #' run clipping:
+  clipped_catalog <- clip_roi(lascatalog, polygons)
+  return(clipped_catalog)
+}
+
