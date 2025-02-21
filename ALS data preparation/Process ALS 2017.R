@@ -78,10 +78,11 @@ las_check(ctg_UTM32_retiled)
 plot(ctg_UTM32_retiled, mapview = T)
 
 
+
 ## 3. Generate footprint polygons --------------------------------------------------------------------------------------
 
 #' read LasCatalog:
-ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/test"))
+ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/3_pointclouds_retiled"))
 
 # convert catalog to polygons:
 ctg_polygons <- catalog_to_polygons(ctg_UTM32_retiled)
@@ -97,3 +98,23 @@ ctg_polygons_stats
 
 #' export polygon file to geopackage:
 st_write(ctg_polygons, dsn = paste0(path_drive, "Tiles.gpkg"), layer = "ALS_2017" , append = T)
+
+
+
+## 4. Cut AOIs from catalog --------------------------------------------------------------------------------------------
+
+
+
+#' read LasCatalog:
+ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/3_pointclouds_retiled"))
+
+#' read AOIs:
+AOIs <- st_read("D:/Reproject ALS Data test/AOIs.gpkg", layer = "AOIs_UTM")
+mapview(AOIs)
+
+
+ctg_UTM32_AOIs <- catalog_clip_polygons(ctg_UTM32_retiled, input_epsg = "EPSG:25832", output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32",
+                      filename_convention = "AOI_{name}", polygons = AOIs)
+
+
+
