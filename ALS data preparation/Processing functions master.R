@@ -243,7 +243,9 @@ merge_GCPs <- function(gcp_data_test, gcp_data_ref, export = F, filename = F, ou
     mutate(deltaX = X - X_ref, 
            deltaY = Y - Y_ref,
            deltaZ = Z - Z_ref) %>% 
-    filter(abs(deltaX) < 5) %>%        #' filter points that are less the 5 m apart to their match
+    filter(abs(deltaX) < 5,
+           abs(deltaY) < 5,
+           abs(deltaZ) < 5) %>%        #' filter points that are less the 5 m apart to their match
     select(ID, Description, AOI, X, Y, Z, X_ref, Y_ref, Z_ref, deltaX, deltaY, deltaZ, geom) %>% 
     st_as_sf() 
   
@@ -276,7 +278,8 @@ aa_create_boxplots <- function(gcp_data, export = F, filename, output_path){
     facet_wrap(vars(Direction), nrow = 3, ncol = 1, shrink = F) + 
     theme_bw() +
     theme(
-      axis.title.x = element_blank()
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
     )
   
   plot(bplot)
@@ -286,7 +289,7 @@ aa_create_boxplots <- function(gcp_data, export = F, filename, output_path){
     ggsave(filename = paste0(filename, ".png"),
            plot = bplot, device = "png",
            path = output_path,
-           width = 200, height = 100, units = "mm", dpi = 300)
+           width = 200, height = 200, units = "mm", dpi = 300)
   }
   
 } 

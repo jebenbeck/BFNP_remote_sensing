@@ -23,6 +23,8 @@ library(mapview)
 library(future)
 library(tidyverse)
 library(stringr)
+library(ggplot2)
+library(Metrics)
 
 ### Required functions and scripts ----
 
