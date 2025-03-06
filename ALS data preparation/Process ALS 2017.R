@@ -24,7 +24,7 @@ library(future)
 library(tidyverse)
 library(stringr)
 library(ggplot2)
-library(Metrics)
+library(yardstick)
 
 ### Required functions and scripts ----
 
@@ -61,7 +61,7 @@ las_check(ctg_UTM32)
 plot(ctg_UTM32)
 
 
-# export catalog polygons ----
+# export catalog polygons:
 ctg_polygons <- catalog_to_polygons(ctg_UTM32)
 
 #' export polygon file to geopackage:
@@ -124,20 +124,26 @@ ctg_UTM32_AOIs <- catalog_clip_polygons(ctg_UTM32_retiled, input_epsg = "EPSG:25
 
 
 #' load AOIs:
-AOIs <- st_read("F:/Reproject ALS Data test/AOIs.gpkg", layer = "AOIs_UTM")
+AOIs <- st_read("D:/Reproject ALS Data test/AOIs.gpkg", layer = "AOIs_UTM")
 
 #' prepare the GCPs as generated using CloudCompare:
-GCPs_2017 <- prepare_GCPs(input_path = "F:/Reproject ALS Data test/ALS data/ALS 2017/GCPs",
-                     output_path = "F:/Reproject ALS Data test/ALS data/ALS 2017/GCPs",
+GCPs_2017 <- prepare_GCPs(input_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs",
+                     output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs",
                      filename = "GCPs_ALS_2017", polygons = AOIs)
 
 
 #' merge the GCPs with the reference GCPs:
-GCPs_ref <- st_read("F:/Reproject ALS Data test/ALS data/ALS 2019/GCPs/GCPs_ALS_2019.gpkg")
-GCPs_2017 <- st_read("F:/Reproject ALS Data test/ALS data/ALS 2017/GCPs/GCPs_ALS_2017.gpkg")
+GCPs_ref <- st_read("D:/Reproject ALS Data test/ALS data/ALS 2019/GCPs/GCPs_ALS_2019.gpkg")
+GCPs_2017 <- st_read("D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs/GCPs_ALS_2017.gpkg")
 
-GCPs_2017_ref <- merge_GCPs(GCPs_2017, GCPs_ref, export = T, filename = "GCPs_ALS_2017_ref", output_path = "F:/Reproject ALS Data test/ALS data/ALS 2017/GCPs")
+GCPs_2017_ref <- merge_GCPs(GCPs_2017, GCPs_ref, export = T, filename = "GCPs_ALS_2017_ref", output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs")
 
 #' generate boxplots:
+GCPs_2017_ref <- st_read("D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs/GCPs_ALS_2017_ref.gpkg")
+
 aa_create_boxplots(gcp_data = GCPs_2017_ref, export = T, filename = "Difference_GCPs_ALS_2017",
-                   output_path = "F:/Reproject ALS Data test/ALS data/ALS 2017/GCPs")
+                   output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs")
+
+#' calculate metrics:
+metrics <- aa_metrics(GCPs_2017_ref, export = T, filename = "Metrics_ALS_2017", output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs")
+metrics

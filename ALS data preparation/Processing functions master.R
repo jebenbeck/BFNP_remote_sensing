@@ -239,14 +239,16 @@ merge_GCPs <- function(gcp_data_test, gcp_data_ref, export = F, filename = F, ou
   
   # Join attributes
   gcp_data_test_ref <- left_join(as.data.frame(gcp_data_test), as.data.frame(gcp_data_ref), 
-                                 by = c("ID" = "matchedID"), suffix = c("", "_ref"), keep = F) %>% 
-    mutate(deltaX = X - X_ref, 
-           deltaY = Y - Y_ref,
-           deltaZ = Z - Z_ref) %>% 
+                                 by = c("ID" = "matchedID"), suffix = c("", "_ref"), keep = F) %>%
+    rename("X_obs" = "X", "Y_obs" = "Y", "Z_obs" = "Z") %>% 
+    mutate(deltaX = X_obs - X_ref, 
+           deltaY = Y_obs - Y_ref,
+           deltaH = sqrt(deltaX^2 + deltaY^2),  # Horizontal Error
+           deltaZ = Z_obs - Z_ref) %>% 
     filter(abs(deltaX) < 5,
            abs(deltaY) < 5,
            abs(deltaZ) < 5) %>%        #' filter points that are less the 5 m apart to their match
-    select(ID, Description, AOI, X, Y, Z, X_ref, Y_ref, Z_ref, deltaX, deltaY, deltaZ, geom) %>% 
+    select(ID, Description, AOI, X_obs, Y_obs, Z_obs, X_ref, Y_ref, Z_ref, deltaX, deltaY, deltaH, deltaZ, geom) %>% 
     st_as_sf() 
   
   if (export == T) {
@@ -268,14 +270,16 @@ merge_GCPs <- function(gcp_data_test, gcp_data_ref, export = F, filename = F, ou
 aa_create_boxplots <- function(gcp_data, export = F, filename, output_path){
   
   #' re-format data for better visualization:
-  data <- gcp_data %>% pivot_longer(cols = c(deltaX, deltaY, deltaZ), names_to = "Direction", values_to = "Difference")
+  data <- gcp_data %>% pivot_longer(cols = c(deltaX, deltaY, deltaZ), names_to = "Direction", values_to = "Difference") %>% 
+    mutate(Direction = recode(Direction, "deltaX" = "X", "deltaY" = "Y", "deltaZ" = "Z"))
   
   #' generate the plot:
   bplot <- ggplot(data = data, aes(y = Difference, x = AOI)) +
-    geom_point(position = position_jitter(width = 0.1), shape = 1, color = "blue") +
-    geom_boxplot(outliers = F, fill = NA, width = 0.2) +
-    geom_hline(yintercept = 0, color = "black") +
+    geom_hline(yintercept = 0, color = "darkgrey", linewidth = 0.5) +
+    geom_point(position = position_jitter(width = 0.1), shape = 1, size = 0.1, color = "blue") +
+    geom_boxplot(outliers = F, color = "black", fill = NA, width = 0.2) +
     facet_wrap(vars(Direction), nrow = 3, ncol = 1, shrink = F) + 
+    labs (y = "Difference (meter)") +
     theme_bw() +
     theme(
       axis.title.x = element_blank(),
@@ -294,3 +298,35 @@ aa_create_boxplots <- function(gcp_data, export = F, filename, output_path){
   
 } 
 
+
+### 6.4. Calculate accurracy metrics ----
+
+
+aa_metrics <- function(gcp_data, export = F, filename, output_path){
+  
+  #' Convert data to long format for easier processing
+  df_long <- gcp_data %>%
+    st_drop_geometry() %>% 
+    select(deltaX, deltaY, deltaZ, deltaH) %>%
+    pivot_longer(cols = everything(), names_to = "direction", values_to = "error")
+  
+  #' Compute accuracy metrics using yardstick
+  summary_table <- df_long %>%
+    group_by(direction) %>%
+    summarise(
+      RMSE = round(rmse_vec(rep(0, n()), error), 3),
+      MAE = round(mae_vec(rep(0, n()), error), 3),
+      Bias = round(mean(error), 3),
+      SD = round(sd(error), 3)
+    ) %>%
+    mutate(direction = recode(direction, "deltaX" = "X", "deltaY" = "Y", "deltaZ" = "Z", "deltaH" = "H"))
+
+  #' Export table to csv
+  if (export == T) {
+    write.csv2(summary_table, file = paste0(output_path, "/", filename, ".csv"), row.names = F, dec = ".")
+  }
+  
+  #' Print the final table
+  return(summary_table)
+  
+}
