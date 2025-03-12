@@ -147,3 +147,13 @@ aa_create_boxplots(gcp_data = GCPs_2017_ref, export = T, filename = "Difference_
 #' calculate metrics:
 metrics <- aa_metrics(GCPs_2017_ref, export = T, filename = "Metrics_ALS_2017", output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/GCPs")
 metrics
+
+
+## 6. Normalization ----------------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("F:/ALS 2017/test")
+
+#' perform the normalization:
+ctg_normalized <- catalog_normalize(ctg, "F:/ALS 2017/test_normalized", "{ORIGINALFILENAME}_normalized", parallel = T, n_cores = 3)
