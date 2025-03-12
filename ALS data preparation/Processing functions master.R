@@ -450,3 +450,35 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
   return(normalized_catalog)
 }
 
+
+
+## 10. Outlier filtering -----------------------------------------------------------------------------------------------
+
+
+
+#test <- readALSLAS("F:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32/AOI_Finsterau.laz")
+test <- readALSLAS("F:/ALS 2017/test_normalized/866000_5409000_normalized.laz")
+rasterize_canopy()
+unique(test@data$Classification)
+plot(test, color = "Classification")
+
+# Remove extreme height values
+test_filtered <- filter_poi(test, NormalizedHeight >= 0 & NormalizedHeight <= 60)
+test_filtered
+
+# IVF for identifying broad outliers:
+test_classified_ivf <- classify_noise(test, ivf(3, 2))
+table(test_classified_ivf@data$Classification)
+
+writeLAS(test_classified_ivf, "F:/ALS 2017/test_normalized/866000_5409000_classified_ivf.laz")
+
+# SOR for identifying small clusters::
+#test_classified_sor <- classify_noise(test, sor(30, 9))
+test_classified_sor <- classify_noise(test_classified_ivf, sor(30, 2))
+table(test_classified_sor@data$Classification)
+
+writeLAS(test_classified_sor, "F:/ALS 2017/test_normalized/866000_5409000_classified_sor.laz")
+
+
+
+
