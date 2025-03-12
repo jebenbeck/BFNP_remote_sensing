@@ -416,36 +416,37 @@ out <- classify_ground(ctg, algorithm = csf(), last_returns = T)
 
 
 
-#' just a test still
+catalog_normalize <- function(lascatalog, output_path, filename_convention, parallel = FALSE, n_cores = 2){
+  
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_chunk_buffer(lascatalog) <- 10
+  opt_chunk_size(lascatalog) <- 0
 
-#' read las file
-#' it should have classified ground points:
-las <- readLAS("F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten.las")
-
-#' normalize point cloud based on DTM:
-las_normalized <- lidR::normalize_height(las, algorithm = tin())
-
-#' Step 1: Create a temporary variable to store the original Z values
-temp <- las_normalized$Z
-
-# Step 2: Switch Z and Zref
-las_normalized$Z <- las_normalized$Zref
-
-#' add the normalized Z values as a proper attribute for export:
-las_output <- add_lasattribute(las_normalized, x = temp, name = "NormalizedHeight", desc = "Height above ground")
-las_output@data
-#' add correct coordinate system:
-st_crs(las_output) <- 25832
-
-#' Visualize:
-plot(las_output, color = "Z")
-plot(las_output, color = "NormalizedHeight")
-
-#' export:
-writeLAS(las_output, "F:/Testdaten Befliegungen 2023/2017/ALS_2017_Sulzschachten_normalized.las")
-
-rm(las, las_normalized, las_output)
-gc()
-#' check:
-las_2 <- readLAS("H:/Testdaten Befliegungen 2023/Output/ALS_20230715_Sulzschachten.las")
+  #' function to reproject las data:
+  normalize = function(las){
+    #' normalize the data:
+    las_normalized <- lidR::normalize_height(las, algorithm = tin())
+    #' Create a temporary variable to store the original Z values
+    temp <- las_normalized$Z
+    # Switch Z and Zref
+    las_normalized$Z <- las_normalized$Zref
+    #' add the normalized Z values as a proper attribute for export:
+    las_output <- add_lasattribute(las_normalized, x = temp, name = "NormalizedHeight", desc = "Height above ground")
+    return(las_output)
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message("Parallel processing will be used with", n_cores, "cores")
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  normalized_catalog = catalog_map(lascatalog, normalize)
+  return(normalized_catalog)
+}
 
