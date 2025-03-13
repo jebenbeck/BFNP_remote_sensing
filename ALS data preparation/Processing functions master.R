@@ -457,8 +457,10 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 
 
 #test <- readALSLAS("F:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32/AOI_Finsterau.laz")
-test <- readALSLAS("F:/ALS 2017/test_normalized/866000_5409000_normalized.laz")
-rasterize_canopy()
+test <- readALSLAS("D:/ALS 2017/test_normalized/866000_5409000_normalized.laz")
+canopy <- rasterize_canopy(test, res = 1, algorithm = pitfree())
+plot(canopy)
+
 unique(test@data$Classification)
 plot(test, color = "Classification")
 
