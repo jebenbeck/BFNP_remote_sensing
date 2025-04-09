@@ -455,8 +455,8 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 ## 10. Outlier filtering -----------------------------------------------------------------------------------------------
 
 
-#' still WIP
 
+#' still WIP
 
 catalog_filter <- function(lascatalog, output_path, filename_convention, parallel = FALSE, n_cores = 2){
   
