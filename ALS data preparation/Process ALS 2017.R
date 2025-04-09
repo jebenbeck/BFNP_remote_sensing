@@ -19,6 +19,7 @@
 
 library(lidR)
 library(sf)
+library(terra)
 library(mapview)
 library(future)
 library(tidyverse)
@@ -153,7 +154,17 @@ metrics
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("F:/ALS 2017/test")
+ctg <- readALSLAScatalog("H:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32")
 
 #' perform the normalization:
-ctg_normalized <- catalog_normalize(ctg, "F:/ALS 2017/test_normalized", "{ORIGINALFILENAME}_normalized", parallel = T, n_cores = 3)
+ctg_normalized <- catalog_normalize(ctg, "H:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 3)
+
+
+
+## 7. Outlier filtering ------------------------------------------------------------------------------------------------
+
+
+ctg <- readALSLAScatalog("H:/ALS 2017/test")
+
+ctg_filtered <- catalog_filter(ctg, "H:/ALS 2017/test_filtered", "{ORIGINALFILENAME}_filtered", parallel = F)
+

@@ -74,42 +74,42 @@ reproject_lascatalog <- function(lascatalog, input_epsg, output_epsg, output_pat
 ### Preprocess the geoid ----
 
 # Read the geoid model (TIFF file)
-geoid <- rast("C:/Users/NBW-Ebenbeck_J/Downloads/quasigeoid.geo89.de/quasigeoid/de/windows/geotiff/GCG2016v2023.tif")
-plot(geoid)
+#geoid <- rast("C:/Users/NBW-Ebenbeck_J/Downloads/quasigeoid.geo89.de/quasigeoid/de/windows/geotiff/GCG2016v2023.tif")
+#plot(geoid)
 
-poly <- as.polygons(geoid, values = F, aggregate = T) 
-poly
+#poly <- as.polygons(geoid, values = F, aggregate = T) 
+#poly
 
-poly_merged <- terra::aggregate(poly)
-mapview(poly_merged)
+#poly_merged <- terra::aggregate(poly)
+#mapview(poly_merged)
 #' Interpolate for higher resolution and smoother results:
 
 # Create empty target raster
-r <- rast(x = ext(geoid), resolution = 100, crs = terra::crs(geoid))
+#r <- rast(x = ext(geoid), resolution = 100, crs = terra::crs(geoid))
 
 #' interpolate grid:
-y <- resample(geoid, r, method = "bilinear")
+#y <- resample(geoid, r, method = "bilinear")
 
 #' reproject geoid to match point cloud:
-geoid_UTM <- project(y, "epsg:25832")
+#geoid_UTM <- project(y, "epsg:25832")
 
 
 #' export raster:
-writeRaster(y, "C:/Users/NBW-Ebenbeck_J/Downloads/quasigeoid.geo89.de/quasigeoid/de/windows/geotiff/GCG2016v2023_100m.tif")
+#writeRaster(y, "C:/Users/NBW-Ebenbeck_J/Downloads/quasigeoid.geo89.de/quasigeoid/de/windows/geotiff/GCG2016v2023_100m.tif")
 
 ### Perform the geoidundulation on ALS data ----
 
-ALS <- readALSLAS("D:/ALS 2017/NPV_00551.laz")
-ALS
-crs(ALS) <- "EPSG:25833"
+#ALS <- readALSLAS("D:/ALS 2017/NPV_00551.laz")
+#ALS
+#crs(ALS) <- "EPSG:25833"
 
-ALS_trans <- st_transform(ALS, "epsg:25832")
-ALS_trans@data
+#ALS_trans <- st_transform(ALS, "epsg:25832")
+#ALS_trans@data
 
-ALS_Geoid <- merge_spatial(ALS_trans, y, "Geoidundulation")
-ALS_Geoid@data
+#ALS_Geoid <- merge_spatial(ALS_trans, y, "Geoidundulation")
+#ALS_Geoid@data
 
-test <- readALSLAS("D:/ALS 2012/UTM32/spur00001_UTM.laz")
+#test <- readALSLAS("D:/ALS 2012/UTM32/spur00001_UTM.laz")
 
 
 
@@ -392,23 +392,23 @@ aa_metrics <- function(gcp_data, export = F, filename, output_path){
 #' just a test
 
 #' Make LAScatalog object:
-ctg <- readLAScatalog("E:/02_Punktwolke")
+#ctg <- readLAScatalog("E:/02_Punktwolke")
 
 #' check LAScatalog vailidity:
-las_check(ctg)
+#las_check(ctg)
 
 #' plot LAScatalog:
-plot(ctg, mapview = TRUE)
+#plot(ctg, mapview = TRUE)
 
 #' define output location and file structure:
-opt_output_files(ctg) <- "C:/ALS Data/Classification Output/{ORIGINALFILENAME}_classified"
-opt_laz_compression(ctg) <- TRUE
+#opt_output_files(ctg) <- "C:/ALS Data/Classification Output/{ORIGINALFILENAME}_classified"
+#opt_laz_compression(ctg) <- TRUE
 
 #' define parallel computation:
-plan(multisession, workers = 2L)
+#plan(multisession, workers = 2L)
 
 #' classify ground points:
-out <- classify_ground(ctg, algorithm = csf(), last_returns = T)
+#out <- classify_ground(ctg, algorithm = csf(), last_returns = T)
 
 
 
@@ -455,30 +455,38 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 ## 10. Outlier filtering -----------------------------------------------------------------------------------------------
 
 
-
-#test <- readALSLAS("F:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32/AOI_Finsterau.laz")
-test <- readALSLAS("F:/ALS 2017/test_normalized/866000_5409000_normalized.laz")
-rasterize_canopy()
-unique(test@data$Classification)
-plot(test, color = "Classification")
-
-# Remove extreme height values
-test_filtered <- filter_poi(test, NormalizedHeight >= 0 & NormalizedHeight <= 60)
-test_filtered
-
-# IVF for identifying broad outliers:
-test_classified_ivf <- classify_noise(test, ivf(3, 2))
-table(test_classified_ivf@data$Classification)
-
-writeLAS(test_classified_ivf, "F:/ALS 2017/test_normalized/866000_5409000_classified_ivf.laz")
-
-# SOR for identifying small clusters::
-#test_classified_sor <- classify_noise(test, sor(30, 9))
-test_classified_sor <- classify_noise(test_classified_ivf, sor(30, 2))
-table(test_classified_sor@data$Classification)
-
-writeLAS(test_classified_sor, "F:/ALS 2017/test_normalized/866000_5409000_classified_sor.laz")
+#' still WIP
 
 
+catalog_filter <- function(lascatalog, output_path, filename_convention, parallel = FALSE, n_cores = 2){
+  
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_chunk_buffer(lascatalog) <- 10
+  opt_chunk_size(lascatalog) <- 0
 
-
+  #' function to filter outliers:
+  filtering = function(las){
+    #' Remove extreme height values
+    #las_filtered <- filter_poi(las, NormalizedHeight >= 0 & NormalizedHeight <= 60)
+    #' IVF for identifying broad outliers:
+    las_classified <- classify_noise(las, ivf(3, 2))
+    #' SOR for identifying small clusters::
+    #las_filtered <- classify_noise(las, sor(30, 2))
+    las_filtered <- filter_poi(las_classified, Classification != LASNOISE)
+    return(las_filtered)
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message("Parallel processing will be used with", n_cores, "cores")
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  filtered_catalog = catalog_map(lascatalog, filtering)
+  return(filtered_catalog)
+} 
