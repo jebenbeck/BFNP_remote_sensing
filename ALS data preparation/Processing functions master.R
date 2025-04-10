@@ -454,7 +454,11 @@ lidR::filter_poi()
 
 
 
+<<<<<<< HEAD
 #' filtering is just valid for the 2017 data
+=======
+#' still WIP -> filtering must still be optimized
+>>>>>>> c5ba157eec785f9ed98646cb6e0edfbc791f7104
 
 catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, filename_convention, 
                            parallel = FALSE, n_cores = 2){
@@ -512,18 +516,14 @@ catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, file
 
 
 
+## 11. DTM creation ----------------------------------------------------------------------------------------------------
 
 
-
-## 11. DTM/DSM creation ------------------------------------------------------------------------------------------------
-
-
-
-catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention,
-                        parallel = FALSE, n_cores = 2){
+catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention, parallel = FALSE, n_cores = 2){
   
   #' apply options to lascatalog
-  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention, "_dtm")
+  #opt_laz_compression(lascatalog) <- TRUE
   opt_chunk_buffer(lascatalog) <- 10
   opt_chunk_size(lascatalog) <- 0
   
