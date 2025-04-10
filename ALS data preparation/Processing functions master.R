@@ -389,8 +389,6 @@ aa_metrics <- function(gcp_data, export = F, filename, output_path){
 
 
 
-#' just a test
-
 #' Make LAScatalog object:
 #ctg <- readLAScatalog("E:/02_Punktwolke")
 
@@ -450,32 +448,90 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
   return(normalized_catalog)
 }
 
-
+lidR::filter_poi()
 
 ## 10. Outlier filtering -----------------------------------------------------------------------------------------------
 
 
 
-#' still WIP
+#' filtering is just valid for the 2017 data
 
-catalog_filter <- function(lascatalog, output_path, filename_convention, parallel = FALSE, n_cores = 2){
+catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, filename_convention, 
+                           parallel = FALSE, n_cores = 2){
   
   #' apply options to lascatalog
   opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
   opt_laz_compression(lascatalog) <- TRUE
   opt_chunk_buffer(lascatalog) <- 10
   opt_chunk_size(lascatalog) <- 0
-
+  
+  if (filter_mode == "classify") {
+    message("Filtered points will be classified in output")
+  } else {
+    message("Filtered points will be removed in output")
+  }
+  
   #' function to filter outliers:
   filtering = function(las){
-    #' Remove extreme height values
-    #las_filtered <- filter_poi(las, NormalizedHeight >= 0 & NormalizedHeight <= 60)
+    
+    #' remove all impossible heights:
+    las_classified <- filter_poi(las, Z>300)
+    
     #' IVF for identifying broad outliers:
-    las_classified <- classify_noise(las, ivf(3, 2))
-    #' SOR for identifying small clusters::
-    #las_filtered <- classify_noise(las, sor(30, 2))
-    las_filtered <- filter_poi(las_classified, Classification != LASNOISE)
-    return(las_filtered)
+    las_classified <- classify_noise(las_classified, ivf(5, 2))
+    
+    if (filter_mode == "classify") {
+      return(las_classified)
+    } else {
+      #' remove the points classified as noise:
+      las_filtered <- filter_poi(las_classified, Classification != LASNOISE)
+      return(las_filtered)
+    }
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  filtered_catalog = catalog_map(lascatalog, filtering)
+  return(filtered_catalog)
+} 
+
+#' Other filtering methods:
+
+#' 1) Remove extreme height values
+#las_filtered <- filter_poi(las, NormalizedHeight >= 0 & NormalizedHeight <= 60)
+
+#' 2) SOR for identifying small clusters:
+#las_classified <- classify_noise(las, sor(30, 2))
+
+
+
+
+
+
+## 11. DTM/DSM creation ------------------------------------------------------------------------------------------------
+
+
+
+catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention,
+                        parallel = FALSE, n_cores = 2){
+  
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_chunk_buffer(lascatalog) <- 10
+  opt_chunk_size(lascatalog) <- 0
+  
+  #' function to reproject las data:
+  derive_dtm = function(las){
+    #' normalize the data:
+    dtm <- lidR::rasterize_terrain(las, res = resolution, algorithm = tin())
+    return(dtm)
   }
   
   #' plan parallel processing
@@ -487,6 +543,6 @@ catalog_filter <- function(lascatalog, output_path, filename_convention, paralle
   }
   
   #' apply function to lascatalog:
-  filtered_catalog = catalog_map(lascatalog, filtering)
-  return(filtered_catalog)
-} 
+  catalog_dtm = catalog_map(lascatalog, derive_dtm)
+  return(catalog_dtm)
+}

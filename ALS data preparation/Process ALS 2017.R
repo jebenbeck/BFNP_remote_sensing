@@ -72,6 +72,7 @@ st_write(ctg_polygons, dsn = paste0(path_drive, "Tiles.gpkg"), layer = "ALS_2017
 
 ## 2. Retile catalog ---------------------------------------------------------------------------------------------------
 
+
 ctg_UTM32_retiled <- catalog_retiling(lascatalog = ctg_UTM32, output_path = paste0(path_drive, "ALS_2017/3_pointclouds_retiled"))
 
 #' check LAScatalog validity:
@@ -83,6 +84,7 @@ plot(ctg_UTM32_retiled, mapview = T)
 
 
 ## 3. Generate footprint polygons --------------------------------------------------------------------------------------
+
 
 #' read LasCatalog:
 ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/3_pointclouds_retiled"))
@@ -107,16 +109,14 @@ st_write(ctg_polygons, dsn = paste0(path_drive, "Tiles.gpkg"), layer = "ALS_2017
 ## 4. Cut AOIs from catalog --------------------------------------------------------------------------------------------
 
 
-
 #' read LasCatalog:
-ctg_UTM32_retiled <- readALSLAScatalog(paste0(path_drive, "ALS 2017/3_pointclouds_retiled"))
+ctg_UTM32_retiled <- readALSLAScatalog("F:/ALS 2017/3_pointclouds_retiled")
 
 #' read AOIs:
-AOIs <- st_read("D:/Reproject ALS Data test/AOIs.gpkg", layer = "AOIs_UTM")
+AOIs <- st_read("F:/Reproject ALS Data test/AOIs.gpkg", layer = "AOIs_UTM")
 mapview(AOIs)
 
-
-ctg_UTM32_AOIs <- catalog_clip_polygons(ctg_UTM32_retiled, input_epsg = "EPSG:25832", output_path = "D:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32",
+ctg_UTM32_AOIs <- catalog_clip_polygons(ctg_UTM32_retiled, input_epsg = "EPSG:25832", output_path = "F:/ALS 2017/test_AOIs",
                       filename_convention = "AOI_{name}", polygons = AOIs)
 
 
@@ -150,7 +150,31 @@ metrics <- aa_metrics(GCPs_2017_ref, export = T, filename = "Metrics_ALS_2017", 
 metrics
 
 
-## 6. Normalization ----------------------------------------------------------------------------------------------------
+
+## 6. Outlier filtering ------------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("F:/ALS 2017/3_pointclouds_retiled")
+
+#' perform filtering::
+ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/4_pointclouds_filtered", "{ORIGINALFILENAME}", parallel = T, n_cores = 6)
+
+
+
+## 7. DTM creation -----------------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("H:/ALS 2017/test")
+
+#' perform the normalization:
+ctg_dtm <- catalog_dtm(ctg, output_path = "H:/ALS 2017/test_dtm", filename_convention = "{ORIGINALFILENAME}", 
+                       parallel = T, n_cores = 2)
+
+
+
+## 8. Normalization ----------------------------------------------------------------------------------------------------
 
 
 #' read in lascatalog:
@@ -158,13 +182,3 @@ ctg <- readALSLAScatalog("H:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM3
 
 #' perform the normalization:
 ctg_normalized <- catalog_normalize(ctg, "H:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 3)
-
-
-
-## 7. Outlier filtering ------------------------------------------------------------------------------------------------
-
-
-ctg <- readALSLAScatalog("H:/ALS 2017/test")
-
-ctg_filtered <- catalog_filter(ctg, "H:/ALS 2017/test_filtered", "{ORIGINALFILENAME}_filtered", parallel = F)
-
