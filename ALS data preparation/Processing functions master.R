@@ -448,17 +448,12 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
   return(normalized_catalog)
 }
 
-lidR::filter_poi()
+
 
 ## 10. Outlier filtering -----------------------------------------------------------------------------------------------
 
 
-
-<<<<<<< HEAD
 #' filtering is just valid for the 2017 data
-=======
-#' still WIP -> filtering must still be optimized
->>>>>>> c5ba157eec785f9ed98646cb6e0edfbc791f7104
 
 catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, filename_convention, 
                            parallel = FALSE, n_cores = 2){
