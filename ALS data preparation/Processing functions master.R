@@ -389,8 +389,6 @@ aa_metrics <- function(gcp_data, export = F, filename, output_path){
 
 
 
-#' just a test
-
 #' Make LAScatalog object:
 #ctg <- readLAScatalog("E:/02_Punktwolke")
 
@@ -456,7 +454,7 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 
 
 
-#' still WIP
+#' still WIP -> filtering must still be optimized
 
 catalog_filter <- function(lascatalog, output_path, filename_convention, parallel = FALSE, n_cores = 2){
   
@@ -490,3 +488,37 @@ catalog_filter <- function(lascatalog, output_path, filename_convention, paralle
   filtered_catalog = catalog_map(lascatalog, filtering)
   return(filtered_catalog)
 } 
+
+
+
+## 11. DTM creation ----------------------------------------------------------------------------------------------------
+
+
+
+catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention, parallel = FALSE, n_cores = 2){
+  
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention, "_dtm")
+  #opt_laz_compression(lascatalog) <- TRUE
+  opt_chunk_buffer(lascatalog) <- 10
+  opt_chunk_size(lascatalog) <- 0
+  
+  #' function to reproject las data:
+  derive_dtm = function(las){
+    #' normalize the data:
+    dtm <- lidR::rasterize_terrain(las, res = resolution, algorithm = tin())
+    return(dtm)
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message("Parallel processing will be used with", n_cores, "cores")
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  catalog_dtm = catalog_map(lascatalog, derive_dtm)
+  return(catalog_dtm)
+}

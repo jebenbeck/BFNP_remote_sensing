@@ -168,3 +168,16 @@ ctg <- readALSLAScatalog("H:/ALS 2017/test")
 
 ctg_filtered <- catalog_filter(ctg, "H:/ALS 2017/test_filtered", "{ORIGINALFILENAME}_filtered", parallel = F)
 
+
+
+
+## 7. DTM creation -----------------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("F:/ALS 2017/test")
+
+#' perform the normalization:
+ctg_dtm <- catalog_dtm(ctg, output_path = "F:/ALS 2017/test_dtm", 
+                       filename_convention =  "{ORIGINALFILENAME}", parallel = T, n_cores = 3)
+
