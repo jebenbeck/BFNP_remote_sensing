@@ -517,7 +517,7 @@ catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, file
 catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention, parallel = FALSE, n_cores = 2){
   
   #' apply options to lascatalog
-  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention, "_dtm")
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
   #opt_laz_compression(lascatalog) <- TRUE
   opt_chunk_buffer(lascatalog) <- 10
   opt_chunk_size(lascatalog) <- 0
@@ -532,7 +532,7 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
   #' plan parallel processing
   if (parallel == TRUE) {
     plan(multisession, workers = n_cores)
-    message("Parallel processing will be used with", n_cores, "cores")
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
   } else {
     warning("No parallel processing in use", call. = F, immediate. = T)
   }

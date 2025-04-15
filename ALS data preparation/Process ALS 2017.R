@@ -155,10 +155,10 @@ metrics
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("F:/ALS 2017/3_pointclouds_retiled")
-
+ctg <- readALSLAScatalog("F:/ALS 2017")
+ctg
 #' perform filtering::
-ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/4_pointclouds_filtered", "{ORIGINALFILENAME}", parallel = T, n_cores = 6)
+ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/test2", "{ORIGINALFILENAME}", parallel = F, n_cores = 5)
 
 
 
@@ -166,11 +166,11 @@ ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/4_point
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("H:/ALS 2017/test")
+ctg <- readALSLAScatalog("F:/ALS 2017/4_pointclouds_filtered")
 
 #' perform the normalization:
-ctg_dtm <- catalog_dtm(ctg, output_path = "H:/ALS 2017/test_dtm", filename_convention = "{ORIGINALFILENAME}", 
-                       parallel = T, n_cores = 2)
+ctg_dtm <- catalog_dtm(ctg, output_path = "5_pointclouds_dtm", filename_convention = "{ORIGINALFILENAME}", 
+                       parallel = T, n_cores = 5)
 
 
 
@@ -178,7 +178,10 @@ ctg_dtm <- catalog_dtm(ctg, output_path = "H:/ALS 2017/test_dtm", filename_conve
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("H:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_UTM32")
+ctg <- readALSLAScatalog("F:/ALS 2017/4_pointclouds_filtered")
+ctg
+las_check(ctg)
+plot(ctg, mapview = T)
 
 #' perform the normalization:
-ctg_normalized <- catalog_normalize(ctg, "H:/Reproject ALS Data test/ALS data/ALS 2017/AOIs_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 3)
+ctg_normalized <- catalog_normalize(ctg, "F:/ALS 2017/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = T, n_cores = 3)
