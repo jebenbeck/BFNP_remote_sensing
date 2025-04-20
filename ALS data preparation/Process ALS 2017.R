@@ -190,4 +190,4 @@ st_crs(ctg)
 las_check(ctg)
 
 #' perform the normalization with dtm:
-ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 5)
+ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = T, n_cores = 4)

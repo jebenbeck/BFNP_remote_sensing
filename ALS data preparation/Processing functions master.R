@@ -457,12 +457,14 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 catalog_normalize_dtm <- function(lascatalog, dtm_path, output_path, filename_convention, parallel = F, n_cores = 2){
   
   #' load dtm:
+  message("loading dtm...")
   dtm <- raster::raster(dtm_path)
+  message("loading dtm finished")
   
   #' apply options to lascatalog
   opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
   opt_laz_compression(lascatalog) <- TRUE
-  opt_chunk_size(lascatalog) <- 0
+  opt_independent_files(lascatalog) <- TRUE
   
   #' function to normalize las data:
   normalize = function(las){
