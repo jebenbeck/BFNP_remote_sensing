@@ -155,7 +155,7 @@ metrics
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("F:/ALS 2017")
+ctg <- readALSLAScatalog("F:/ALS 2017/3_pointclouds_retiled")
 ctg
 #' perform filtering::
 ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/test2", "{ORIGINALFILENAME}", parallel = F, n_cores = 5)

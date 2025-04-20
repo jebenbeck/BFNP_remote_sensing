@@ -413,6 +413,8 @@ aa_metrics <- function(gcp_data, export = F, filename, output_path){
 ## 9. Normalization ----------------------------------------------------------------------------------------------------
 
 
+### 9.1 without DTM ----
+
 
 catalog_normalize <- function(lascatalog, output_path, filename_convention, parallel = FALSE, n_cores = 2){
   
@@ -438,7 +440,7 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
   #' plan parallel processing
   if (parallel == TRUE) {
     plan(multisession, workers = n_cores)
-    message("Parallel processing will be used with", n_cores, "cores")
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
   } else {
     warning("No parallel processing in use", call. = F, immediate. = T)
   }
@@ -449,6 +451,96 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 }
 
 
+### 9.2 With DTM ----
+
+
+#' DTMs have to be stored in the same pattern as the las files, i.e. they have to be matching tiles and their names have 
+#' to match also
+
+
+
+catalog_normalize_dtm <- function(lascatalog, dtm_folder, output_path, filename_convention, parallel = F, n_cores = 2){
+
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_chunk_buffer(lascatalog) <- 0
+  opt_chunk_size(lascatalog) <- 0
+  
+  #' function to normalize las data:
+  normalize = function(chunk){
+    las <- readLAS(chunk)
+    
+    # Get the name of the original file
+    tile_name <- tools::file_path_sans_ext(basename(chunk@files))
+    dtm_path <- file.path(dtm_folder, paste0(tile_name, "_dtm.tif"))
+    
+    if (!file.exists(dtm_path)) {
+      warning("DTM file not found: ", dtm_path)
+      return(NULL)
+    }
+    
+    #' read in dtm:
+    dtm <- terra::rast(dtm_path)
+    #' normalize the data:
+    las_normalized <- lidR::normalize_height(las, algorithm = dtm)
+    #' Create a temporary variable to store the original Z values
+    temp <- las_normalized$Z
+    # Switch Z and Zref
+    las_normalized$Z <- las_normalized$Zref
+    #' add the normalized Z values as a proper attribute for export:
+    las_output <- add_lasattribute(las_normalized, x = temp, name = "NormalizedHeight", desc = "Height above ground")
+    return(las_output)
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  normalized_catalog = catalog_apply(lascatalog, normalize)
+  return(normalized_catalog)
+}
+
+
+
+catalog_normalize_dtm_single <- function(lascatalog, dtm, output_path, filename_convention, parallel = F, n_cores = 2){
+
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_chunk_buffer(lascatalog) <- 0
+  opt_chunk_size(lascatalog) <- 0
+  
+  #' function to reproject las data:
+  normalize = function(las){
+    #' normalize the data:
+    las_normalized <- lidR::normalize_height(las, algorithm = dtm)
+    #' Create a temporary variable to store the original Z values
+    temp <- las_normalized$Z
+    # Switch Z and Zref
+    las_normalized$Z <- las_normalized$Zref
+    #' add the normalized Z values as a proper attribute for export:
+    las_output <- add_lasattribute(las_normalized, x = temp, name = "NormalizedHeight", desc = "Height above ground")
+    return(las_output)
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  normalized_catalog = catalog_map(lascatalog, normalize)
+  return(normalized_catalog)
+}
 
 ## 10. Outlier filtering -----------------------------------------------------------------------------------------------
 
@@ -518,11 +610,10 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
   
   #' apply options to lascatalog
   opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
-  #opt_laz_compression(lascatalog) <- TRUE
   opt_chunk_buffer(lascatalog) <- 10
   opt_chunk_size(lascatalog) <- 0
   
-  #' function to reproject las data:
+  #' function to compute the dtm:
   derive_dtm = function(las){
     #' normalize the data:
     dtm <- lidR::rasterize_terrain(las, res = resolution, algorithm = tin())
