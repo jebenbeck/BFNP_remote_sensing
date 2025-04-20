@@ -155,10 +155,11 @@ metrics
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("F:/ALS 2017/3_pointclouds_retiled")
+ctg <- readALSLAScatalog("D:/3_pointclouds_retiled")
 ctg
+
 #' perform filtering::
-ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/test2", "{ORIGINALFILENAME}", parallel = F, n_cores = 5)
+ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "D:/4_pointclouds_filtered", "{ORIGINALFILENAME}", parallel = F, n_cores = 3)
 
 
 
@@ -166,11 +167,15 @@ ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "F:/ALS 2017/test2",
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("F:/ALS 2017/4_pointclouds_filtered")
+ctg <- readALSLAScatalog("D:/4_1_pointclouds_filtered_2")
+las_check(ctg)
+plot(ctg)
 
-#' perform the normalization:
-ctg_dtm <- catalog_dtm(ctg, output_path = "5_pointclouds_dtm", filename_convention = "{ORIGINALFILENAME}", 
-                       parallel = T, n_cores = 5)
+#' perform the dtm creation:
+ctg_dtm <- catalog_dtm(ctg, output_path = "D:/5_1_dtms_2", filename_convention = "{ORIGINALFILENAME}_dtm", 
+                       parallel = T, n_cores = 4)
+
+plot(ctg_dtm)
 
 
 
@@ -178,10 +183,11 @@ ctg_dtm <- catalog_dtm(ctg, output_path = "5_pointclouds_dtm", filename_conventi
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("F:/ALS 2017/4_pointclouds_filtered")
-ctg
-las_check(ctg)
-plot(ctg, mapview = T)
+ctg <- readALSLAScatalog("D:/4_pointclouds_filtered")
 
-#' perform the normalization:
-ctg_normalized <- catalog_normalize(ctg, "F:/ALS 2017/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = T, n_cores = 3)
+plot(ctg)
+st_crs(ctg)
+las_check(ctg)
+
+#' perform the normalization with dtm:
+ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 5)
