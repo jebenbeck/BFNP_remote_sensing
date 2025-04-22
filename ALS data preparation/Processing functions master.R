@@ -458,13 +458,14 @@ catalog_normalize_dtm <- function(lascatalog, dtm_path, output_path, filename_co
   
   #' load dtm:
   message("loading dtm...")
-  dtm <- raster::raster(dtm_path)
+  dtm <- terra::rast(dtm_path)
   message("loading dtm finished")
   
   #' apply options to lascatalog
   opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
   opt_laz_compression(lascatalog) <- TRUE
   opt_independent_files(lascatalog) <- TRUE
+  opt_stop_early(lascatalog) <- FALSE 
   
   #' function to normalize las data:
   normalize = function(las){
@@ -491,6 +492,8 @@ catalog_normalize_dtm <- function(lascatalog, dtm_path, output_path, filename_co
   normalized_catalog = catalog_map(lascatalog, normalize)
   return(normalized_catalog)
 }
+
+
 
 
 

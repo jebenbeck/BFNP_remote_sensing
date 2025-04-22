@@ -167,7 +167,7 @@ ctg_filtered <- catalog_filter(ctg, filter_mode = "filter", "D:/4_pointclouds_fi
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("D:/4_1_pointclouds_filtered_2")
+ctg <- readALSLAScatalog("D:/4_pointclouds_filtered/to-do")
 las_check(ctg)
 plot(ctg)
 
@@ -179,15 +179,43 @@ plot(ctg_dtm)
 
 
 
+# 1. List all .tif files in the directory
+tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
+
+# 2. Read all rasters in a collection:
+rasters <- sprc(tif_files)
+
+# 3. Mosaic
+mosaic_raster <- terra::mosaic(rasters)
+mosaic_raster
+
+mosaic_raster_0 <- terra::subst(mosaic_raster, NA, 0)
+
+# Save output
+terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff", overwrite = TRUE)
+
+
+
 ## 8. Normalization ----------------------------------------------------------------------------------------------------
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("D:/4_pointclouds_filtered")
+ctg <- readALSLAScatalog("F:/ALS 2017/Testdata/02_outlier_filtering_classified")
+ctg <- readALSLAScatalog("D:/6_pointclouds_normalized")
+ctg
 
 plot(ctg)
-st_crs(ctg)
 las_check(ctg)
 
 #' perform the normalization with dtm:
-ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = T, n_cores = 4)
+ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "F:/ALS 2017/Testdata/04_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 1)
+
+
+dtmmosaic <- rast("D:/dtm_mosaic.tif")
+testdtm <- raster::raster("D:/5_dtms/866000_5407000_dtm.tif")
+testdtm
+testdata <- readALSLAS("F:/ALS 2017/Testdata/01_pointclouds_utm/866000_5407000.laz")
+testdata_n <- normalize_height(testdata, algorithm = dtmmosaic)
+
+
+writeLAS(testdata_n, "F:/ALS 2017/Testdata/test.laz")
