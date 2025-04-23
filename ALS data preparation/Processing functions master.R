@@ -153,7 +153,7 @@ catalog_statistics <- function(lascatalog, parallel = F, n_cores = 2){
     #' calculate point density:
     density = density(las) 
     #' calculate area covered by convex hull (not bbox):
-    area = area(las)
+    area = lidR::area(las) 
     #' extract tile name from file (for merging information to other data later):
     tilename = tools::file_path_sans_ext(basename(chunk@files))
     #' extract extent of full tile:
@@ -172,7 +172,7 @@ catalog_statistics <- function(lascatalog, parallel = F, n_cores = 2){
   #' plan parallel processing
   if (parallel == TRUE) {
     plan(multisession, workers = n_cores)
-    message("Parallel processing will be used with", n_cores, "cores")
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
   } else {
     warning("No parallel processing in use", call. = F, immediate. = T)
   }
@@ -589,3 +589,49 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
   catalog_dtm = catalog_map(lascatalog, derive_dtm)
   return(catalog_dtm)
 }
+
+
+# WIP:
+
+# 1. List all .tif files in the directory
+tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
+
+# 2. Read all rasters in a collection:
+rasters <- sprc(tif_files)
+
+# 3. Mosaic
+mosaic_raster <- terra::mosaic(rasters)
+mosaic_raster
+
+mosaic_raster_0 <- terra::subst(mosaic_raster, NA, 0)
+
+# Save output
+terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff", overwrite = TRUE)
+
+
+
+## 12. Subset catalog --------------------------------------------------------------------------------------------------
+
+
+#' WIP!
+
+## Subset to NPBW area:
+
+ctg_normalized_dtm <- readALSLAScatalog("C:/ALS Data/6_normalized")
+
+plot(ctg_normalized_dtm, mapview =T)
+
+NP <- st_read ("F:/Basisdaten/Gebiete.gpkg", layer = "Overall area") %>% 
+  st_buffer(200)
+mapview(NP)
+ctg_subset <- catalog_intersect(ctg = ctg_normalized_dtm, NP)
+x <- st_as_sf(ctg_subset)
+x
+plot(ctg_subset, mapview =T)
+
+
+# Copy the files
+file.copy(from = x[["filename"]],
+          to = file.path("D:/7_subset_npbw", basename(x[["filename"]])),
+          overwrite = FALSE)  # Set to TRUE if you want to overwrite existing files
+

@@ -199,41 +199,8 @@ terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff"
 ## 8. Normalization ----------------------------------------------------------------------------------------------------
 
 
-# Define directories
-filtered_dir <- "D:/4_pointclouds_filtered"
-normalized_dir <- "C:/ALS Data/2017_Output"
-output_dir <- "D:/4_1_pointclouds_filtered_to-do"
-
-# Create the output directory if it doesn't exist
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir, recursive = TRUE)
-}
-
-# List files in both directories
-filtered_files <- list.files(filtered_dir)
-filtered_files
-normalized_files <- list.files(normalized_dir)
-normalized_files
-
-# Identify files in filtered that are not in normalized
-unmatched_files <- setdiff(filtered_files, normalized_files)
-unmatched_files
-
-# Copy those files
-for (file in unmatched_files) {
-  from <- file.path(filtered_dir, file)
-  to <- file.path(output_dir, file)
-  success <- file.copy(from, to, overwrite = FALSE)
-  if (success) {
-    cat("Copied:", file, "\n")
-  } else {
-    cat("Failed to copy:", file, "\n")
-  }
-}
-
-
 #' read in lascatalog:
-ctg <- readALSLAScatalog("D:/4_1_pointclouds_filtered_to-do")
+ctg <- readALSLAScatalog("D:/4_pointclouds_filtered")
 
 ctg
 plot(ctg)
@@ -241,4 +208,27 @@ las_check(ctg)
 
 #' perform the normalization with dtm:
 ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 1)
+
+
+## Subset to NPBW area:
+
+ctg_normalized_dtm <- readALSLAScatalog("C:/ALS Data/6_normalized")
+
+plot(ctg_normalized_dtm, mapview =T)
+
+NP <- st_read ("F:/Basisdaten/Gebiete.gpkg", layer = "Overall area") %>% 
+  st_buffer(200)
+mapview(NP)
+ctg_subset <- catalog_intersect(ctg = ctg_normalized_dtm, NP)
+x <- st_as_sf(ctg_subset)
+x
+plot(ctg_subset, mapview =T)
+
+
+# Copy the files
+file.copy(from = x[["filename"]],
+          to = file.path("D:/7_subset_npbw", basename(x[["filename"]])),
+          overwrite = FALSE)  # Set to TRUE if you want to overwrite existing files
+
+
 
