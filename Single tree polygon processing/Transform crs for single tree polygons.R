@@ -21,11 +21,12 @@ transform_polygons <- function(file, out_dir, gpkg_name){
   }
   
   #' read polygons and reproject them: to UTM Zone 32 N:
-  polygons_prj <- read_sf(file, quiet = T) %>% st_transform(crs = st_crs("EPSG:25832"))
+  polygons_prj <- read_sf(file, quiet = T) %>% st_transform(crs = st_crs("EPSG:25832")) %>% 
+    mutate(FID = row_number(), .before = ID)
   
   #' reproject center position of the trees to UTM:
   centers_UTM <- st_drop_geometry(polygons_prj) %>% 
-    select(c(ID, X_POS, Y_POS)) %>%                          #' remove unnecessary columns to save memory 
+    dplyr::select(c(FID, X_POS, Y_POS)) %>%                  #' remove unnecessary columns to save memory 
     st_as_sf(coords = c("X_POS", "Y_POS"), crs = 31468) %>%  #' transform to sf to be able to reproject data
     st_transform(test_sf, crs = st_crs("EPSG:25832")) %>%    #' do the transformation
     mutate(                                                  #' add the new coordinates to table as an attribute
@@ -35,10 +36,10 @@ transform_polygons <- function(file, out_dir, gpkg_name){
   
   #' replace the coordinates in the polygon dataset:
   polygons_prj_UTM <- polygons_prj %>%                    
-    left_join(centers_UTM, by = "ID", suffix = c("", "_new")) %>%  #' join the new columns with the polygon data
+    left_join(centers_UTM, by = "FID", suffix = c("", "_new")) %>%  #' join the new columns with the polygon data
     mutate(X_POS = X_POS_new, Y_POS = Y_POS_new) %>%               #' replace the coordinates
-    select(-X_POS_new, -Y_POS_new) %>%                             #' remove duplicate columns
-    arrange(ID) %>%                                                #' sort by ID
+    dplyr::select(-X_POS_new, -Y_POS_new) %>%                             #' remove duplicate columns
+    arrange(FID) %>%                                                #' sort by ID
     mutate(across(c(HEIGHT, TER_HEIGHT, CB_HEIGHT, CROWN_VOL), ~ round(.x, 2)))  #' round tree attribute values to cm
   
   #' export as gpkg:
@@ -58,7 +59,12 @@ transform_polygons <- function(file, out_dir, gpkg_name){
 
 #' read in all the files that shall be processed:
 files <- list.files("E:/Single tree polygons 2017/01_Projected_GK/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
+files <- files[4]
+files
 
 #' apply function to all datasets:
-pblapply(files, transform_polygons, out_dir = "E:/Single tree polygons 2017/temp/", gpkg_name = "NCUT_polygons_2017_UTM.gpkg")
+x <- pblapply(files, transform_polygons, out_dir = "E:/Single tree polygons 2017/temp/", gpkg_name = "NCUT_polygons_2017_UTM_test.gpkg")
 stopCluster(cl)
+x
+
+

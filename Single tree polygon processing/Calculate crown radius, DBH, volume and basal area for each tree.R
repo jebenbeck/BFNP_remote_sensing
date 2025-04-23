@@ -18,56 +18,28 @@
 ### Required packages ----
 
 require(tidyverse)
-require(parallel)
-library(doParallel)
-library(foreach)
 require(sf)
 require(terra)
 require(dplyr)
 require(raster)
 require(mapview)
 require(units)
-
-
-### Required functions and scripts ----
-
-
-### Set working directories ----
-
-indir <- "F:/Single tree polygons 2017/Projected_UTM"
-outdir <- "F:/Single tree polygons 2017/Volume/"
-
+library(pbapply)
 
 
 
 ## 1. Calculate single tree metrics ------------------------------------------------------------------------------------
 
 
-#' list of all polygons:
-ST_files_list <- list.files(indir, pattern = ".*.gpkg$", recursive = T, full.names = TRUE)
-
-
-#' set up parallel computation:
-no_cores <- 8   #' number of cores
-cl <- makeCluster(no_cores, type = "PSOCK")
-registerDoParallel(cl)
-
-#' apply processing chain for each file:
-foreach(i = 1:length(ST_files_list), .packages = c("sf", "tidyverse", "units")) %dopar% {
-#for(i in 1:length(ST_files_list_subset)) {
-
-    #' select respective file
-  ST_file <- ST_files_list[[i]]
-  
-  #' parse filename:
-  filename <- tools::file_path_sans_ext(basename(ST_file))
+#' function with processing chain for each file:
+calculate_metrics <- function(layername, out_dir, gpkg_name){
   
   #' read in the polygons:
-  ST_polygons <- read_sf(ST_file, as_tibble = F, quiet = T) #%>% 
-    #mutate(VALID = st_is_valid(.)) %>%              #' check individual polygons, if valid
-    #filter(VALID == T)                              #' remove invalid polygons
-  
-  #' Process the data:
+  ST_polygons <- st_read(gpkg_path, layer = layername, quiet = TRUE) #%>% 
+      # mutate(VALID = st_is_valid(.)) %>%              #' check individual polygons, if valid
+      # filter(VALID == T)                              #' remove invalid polygons
+ 
+  #' data praparation and processing:
   ST_polygons_edit <- ST_polygons %>% 
     rename(
       TREE_ID = ID, 
@@ -97,33 +69,40 @@ foreach(i = 1:length(ST_files_list), .packages = c("sf", "tidyverse", "units")) 
         TREE_CLASS == "Coniferous" & Z_POS <= 1100  ~ exp (1.514295763 + 0.08884223 * TREE_HEIGHT + 0.02451053 * CROWN_RADIUS + -0.00081988 * TREE_HEIGHT ^ 2 + 0.00238753 * CROWN_RADIUS ^ 2),
         TREE_CLASS == "Deciduous" ~ exp (1.466743252 + 0.0896038 * TREE_HEIGHT + 0.08079226 * CROWN_RADIUS + -0.00108584 * TREE_HEIGHT ^ 2 + -0.0019256 * CROWN_RADIUS ^ 2)
       ),
-    
+      
       #' calculate the timber stock:
       STOCK = case_when(
         TREE_CLASS == "Coniferous" & Z_POS > 1100 ~ exp (-6.141586 + 0.33287 * TREE_HEIGHT + 0.271382 * CROWN_RADIUS + -0.004105 * TREE_HEIGHT ^ 2 + -0.0139 * CROWN_RADIUS ^ 2),
         TREE_CLASS == "Coniferous" & Z_POS <= 1100 ~ exp (-5.389 + 0.25144704 * TREE_HEIGHT + 0.06587771 * CROWN_RADIUS + -0.00232442 * TREE_HEIGHT ^ 2 + 0.00274139 * CROWN_RADIUS ^ 2),
         TREE_CLASS == "Deciduous" ~ exp (-6.1162059 + 0.29604055 * TREE_HEIGHT + 0.19163645 * CROWN_RADIUS + -0.00356909 * TREE_HEIGHT ^ 2 + -0.00523082 * CROWN_RADIUS ^ 2)
       ),
-    
+      
       #' calculate the basal area:
       BASAL_AREA = (DBH / 200) ^ 2 * pi,
       
-      .after = CROWN_VOLUME) 
+      .after = CROWN_VOLUME) %>% 
+    
+    #' round all metrics to two digits:
+    mutate(across(c(CROWN_AREA, CROWN_RADIUS, DBH, STOCK, BASAL_AREA), ~round(.x, 2)))
   
   #' export as gpkg:
-  st_write(ST_polygons_edit, dsn = paste0(outdir, filename, ".gpkg"), driver = "GPKG", append = F)
-  
-  #' export as csv:
-  write.csv2(ST_polygons_edit, file = paste0(outdir, "Tables/", filename, ".csv"))
+  st_write(ST_polygons_edit, dsn = paste0(out_dir, gpkg_name), layer = paste0(layername), 
+           driver = "GPKG", append = T, quiet = T)
   
   #' remove data from memory to save space:
   rm(ST_polygons)
   rm(ST_polygons_edit)
-
+  gc()
+  
 }
 
-stopCluster(cl)
+# Get the list of all layers in the GeoPackage
+gpkg_path <- "E:/Single tree polygons 2017/temp/NCUT_polygons_2017_UTM.gpkg"
+layer_names <- st_layers(gpkg_path)$name
+layer_names <- layer_names[1]
+layer_names
 
+pblapply(layer_names, calculate_metrics, out_dir = "E:/Single tree polygons 2017/temp/", gpkg_name = "NCUT_polygons_2017_metrics.gpkg")
 
 
 
