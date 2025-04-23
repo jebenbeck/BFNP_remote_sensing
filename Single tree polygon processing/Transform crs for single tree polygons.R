@@ -9,18 +9,15 @@ options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832
 options[1,]$definition #' the transformation in use, must use BETA2007
 
 
-#' read in all the files that shall be processed:
-files <- list.files("E:/Single tree polygons 2017/01_Projected_GK/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
-
 #' function to transform the data:
-transform_polygons <- function(file){
+transform_polygons <- function(file, out_dir, gpkg_name){
   
   #' get name of the layer:
   filename <- tools::file_path_sans_ext(basename(file))  # Remove .gpkg
   if (nchar(filename) > 45) {
-    filename <- paste0(substr(filename, 1, 9), substr(filename, nchar(filename)-1, nchar(filename)))
+    layername <- paste0(substr(filename, 1, 9), substr(filename, nchar(filename)-1, nchar(filename)))
   } else {
-    filename <- substr(filename, 1, 8)
+    layername <- substr(filename, 1, 8)
   }
   
   #' read polygons and reproject them: to UTM Zone 32 N:
@@ -45,7 +42,7 @@ transform_polygons <- function(file){
     mutate(across(c(HEIGHT, TER_HEIGHT, CB_HEIGHT, CROWN_VOL), ~ round(.x, 2)))  #' round tree attribute values to cm
   
   #' export as gpkg:
-  st_write(polygons_prj_UTM, dsn = "E:/Single tree polygons 2017/temp/NCUT_polygons_2017_UTM.gpkg", layer = paste0(layername), 
+  st_write(polygons_prj_UTM, dsn = paste0(out_dir, gpkg_name), layer = paste0(layername), 
            driver = "GPKG", append = T, quiet = T)
 
   #' clean data from memory:
@@ -55,11 +52,13 @@ transform_polygons <- function(file){
   
 }  
 
-# Set up parallel backend with 2 cores
-cl <- makeCluster(1)
-clusterEvalQ(cl, library(sf)) # Load sf on all nodes
+#' Optional: Set up parallel backend with 2 cores
+#cl <- makeCluster(1)
+#clusterEvalQ(cl, library(sf)) # Load sf on all nodes
+
+#' read in all the files that shall be processed:
+files <- list.files("E:/Single tree polygons 2017/01_Projected_GK/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
 
 #' apply function to all datasets:
-pblapply(files, transform_polygons)
-
+pblapply(files, transform_polygons, out_dir = "E:/Single tree polygons 2017/temp/", gpkg_name = "NCUT_polygons_2017_UTM.gpkg")
 stopCluster(cl)
