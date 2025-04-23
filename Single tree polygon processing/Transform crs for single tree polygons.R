@@ -3,6 +3,14 @@ library(tidyverse)
 library(parallel)
 library(doParallel)
 library(foreach)
+library(pbapply)
+
+
+#' check reprojection settings for GK->UTM transformations:
+sf_proj_network(enable = T)
+options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832")
+options[1,]$definition #' the transformation in use, must use BETA2007
+
 
 #' read in all the files that shall be processed:
 files <- list.files("E:/Single tree polygons 2017/01_Projected_GK/", pattern = "*.gpkg$", recursive = T, full.names = TRUE)
@@ -18,7 +26,7 @@ registerDoParallel(cl)
 foreach(i = 1:length(files), .packages = "sf") %dopar% {
   
   #' read polygons and reproject them: to UTM Zone 32 N:
-  polygons_prj <- read_sf(files[[i]], quiet = T) %>% st_transform(crs = st_crs("EPSG:25832"))
+  polygons_prj <- read_sf(files[[4]], quiet = T) %>% st_transform(crs = st_crs("EPSG:25832"))
   
   #' reproject center position of the trees to UTM:
   centers_UTM <- st_drop_geometry(polygons_prj) %>% 
@@ -40,7 +48,7 @@ foreach(i = 1:length(files), .packages = "sf") %dopar% {
 
   #' export as gpkg:
   # st_write(polygons_prj, dsn = paste0("D:/Single tree polygons 2017/Projected_UTM/", filenames[[i]]), driver = "GPKG", append = F)
-  st_write(polygons_prj_UTM, dsn = "E:/Single tree polygons 2017/temp/NCUT_polygons_2017.gpkg", layer = paste0(layernames[[i]]), driver = "GPKG", append = T)
+  st_write(polygons_prj_UTM, dsn = "E:/Single tree polygons 2017/temp/NCUT_polygons_2017_beta.gpkg", layer = paste0(layernames[[4]]), driver = "GPKG", append = T)
   
   #' clean data from memory:
   rm(polygons_prj)
@@ -49,3 +57,7 @@ foreach(i = 1:length(files), .packages = "sf") %dopar% {
 }
 
 stopCluster(cl)
+
+sf_proj_network(enable = T)
+options <- sf_proj_pipelines(source_crs = "EPSG:31468", target_crs = "EPSG:25832")
+View(options)
