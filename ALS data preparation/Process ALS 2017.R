@@ -179,22 +179,6 @@ plot(ctg_dtm)
 
 
 
-# 1. List all .tif files in the directory
-tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
-
-# 2. Read all rasters in a collection:
-rasters <- sprc(tif_files)
-
-# 3. Mosaic
-mosaic_raster <- terra::mosaic(rasters)
-mosaic_raster
-
-mosaic_raster_0 <- terra::subst(mosaic_raster, NA, 0)
-
-# Save output
-terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff", overwrite = TRUE)
-
-
 
 ## 8. Normalization ----------------------------------------------------------------------------------------------------
 
@@ -210,25 +194,22 @@ las_check(ctg)
 ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 1)
 
 
-## Subset to NPBW area:
-
-ctg_normalized_dtm <- readALSLAScatalog("C:/ALS Data/6_normalized")
-
-plot(ctg_normalized_dtm, mapview =T)
-
-NP <- st_read ("F:/Basisdaten/Gebiete.gpkg", layer = "Overall area") %>% 
-  st_buffer(200)
-mapview(NP)
-ctg_subset <- catalog_intersect(ctg = ctg_normalized_dtm, NP)
-x <- st_as_sf(ctg_subset)
-x
-plot(ctg_subset, mapview =T)
+ctg <- readALSLAScatalog("D:/7_subset_npbw")
+las_check(ctg)
+plot(ctg)
 
 
-# Copy the files
-file.copy(from = x[["filename"]],
-          to = file.path("D:/7_subset_npbw", basename(x[["filename"]])),
-          overwrite = FALSE)  # Set to TRUE if you want to overwrite existing files
+# convert catalog to polygons:
+ctg_polygons <- catalog_to_polygons(ctg)
 
+#' calculate statistics on catalog:
+ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 3)
 
+#' merge the data: 
+ctg_polygons_stats <- left_join(ctg_polygons, ctg_stats) %>% 
+  relocate(c(Point.density, Area.covered), .after = Tile.name) %>% 
+  relocate(c(Tile.max.X, Tile.min.X, Tile.max.Y, Tile.min.Y), .after = Min.Z)
+ctg_polygons_stats
 
+#' export polygon file to geopackage:
+st_write(ctg_polygons_stats, dsn = paste0("D:/7_subset_npbw/", "Tiles.gpkg"), layer = "ALS_2017" , append = T)
