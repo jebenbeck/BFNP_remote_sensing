@@ -213,3 +213,45 @@ ctg_polygons_stats
 
 #' export polygon file to geopackage:
 st_write(ctg_polygons_stats, dsn = paste0("D:/7_subset_npbw/", "Tiles.gpkg"), layer = "ALS_2017" , append = T)
+
+
+
+## 9. Clip to reference areas ------------------------------------------------------------------------------------------
+
+#' read AOIs:
+AOIs <- st_read("H:/Waldstruktur Bodendaten/Dauerbeobachtungsflächen/HTO Referenzflächen/Geodaten/Referenzflächen nach Layern stand 2023-10-27.gpkg", layer = "Transekt") %>% 
+  st_buffer(50)
+mapview(AOIs)
+AOIs
+
+# 3. Create a "touch" graph: which polygons intersect which
+# st_intersects returns a list where each element contains indices of intersecting polygons
+touch_list <- st_intersects(AOIs)
+
+# 4. Turn the list into groups (i.e., components of the touch graph)
+# This uses connected components to group overlapping polygons
+library(igraph)
+
+# Build a graph
+g <- graph_from_adj_list(touch_list, mode = "all")
+components <- components(g)$membership
+components
+
+# 5. Add group IDs to the sf object
+AOIs$group_id <- components
+View(AOIs)
+
+# 6. Union polygons within each group
+AOIs_grouped <- AOIs %>%
+  group_by(group_id) %>%
+  summarise(geom = st_union(geom), .groups = "drop")
+
+mapview(AOIs_grouped)
+
+
+#' read LasCatalog:
+ctg_UTM32_retiled <- readALSLAScatalog("H:/ALS 2017/4_pointclouds_filtered")
+plot(ctg_UTM32_retiled, mapview = T)
+
+ctg_UTM32_AOIs <- catalog_clip_polygons(ctg_UTM32_retiled, input_epsg = "EPSG:25832", output_path = "H:/ALS 2017/Reference_areas",
+                                        filename_convention = "AOI_{ID_plot}", polygons = AOIs_subset)
