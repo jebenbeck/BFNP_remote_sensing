@@ -217,7 +217,8 @@ catalog_retiling <- function(lascatalog, tile_alignment = c(0,0), tile_size = 10
 #' to check the spatial accurracy between the different datasets, AOIs are used. This function generates multiple output
 #' LAZ files based on input polygons (one file per polygon). 
 
-catalog_clip_polygons <- function(lascatalog, input_epsg, output_path, filename_convention = "{ID}", polygons) {
+catalog_clip_polygons <- function(lascatalog, input_epsg, output_path, filename_convention = "{ID}", polygons, 
+                                  parallel = F, n_cores = 2) {
   
   #' check projection if needed:
   if (is.na(st_crs(lascatalog))) {
@@ -235,9 +236,18 @@ catalog_clip_polygons <- function(lascatalog, input_epsg, output_path, filename_
   opt_laz_compression(lascatalog) <- TRUE
   opt_independent_files(lascatalog) <- TRUE
   
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
   #' run clipping:
   clipped_catalog <- clip_roi(lascatalog, polygons)
   return(clipped_catalog)
+  
 }
 
 
@@ -591,7 +601,7 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
 }
 
 
-# WIP:
+# WIP! Option to mosaic the DTM, still has to be implemented into the function. 
 
 # 1. List all .tif files in the directory
 tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
@@ -613,9 +623,11 @@ terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff"
 ## 12. Subset catalog --------------------------------------------------------------------------------------------------
 
 
-#' WIP!
+#' WIP! -> just a first draft
 
-## Subset to NPBW area:
+#' Subset a catalog to an larger area. This function selects all tiles that overlap with a polygon or a buffer around it
+#' and copies them into a new directory. It is not possible to parallelize this function. 
+
 
 ctg_normalized_dtm <- readALSLAScatalog("C:/ALS Data/6_normalized")
 
