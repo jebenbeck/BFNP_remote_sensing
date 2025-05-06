@@ -29,9 +29,10 @@ terra::merge(raster_sprc, filename = paste0("F:/DGM1_Bayern/", "DGM1_Bayern_gesa
 raster_files <- list.files("F:/DGM1_Bayern", pattern = "*.tif$", recursive = T, full.names = TRUE)
 raster_files
 
+#' read in the tiles representing all raster extents:
 tiles <- st_read("L:/LIDAR/ALS_tiles.gpkg", layer = "Overview")
 
-st_layers("G:/Projektdaten/GIP Ebenbeck/Daten für Inventurdatenbank/Nationalpark Basisdaten.gpkg")
+#' read in the area of interest that the data should be generated for:
 AOI <- st_read("G:/Projektdaten/GIP Ebenbeck/Daten für Inventurdatenbank/Nationalpark Basisdaten.gpkg", layer = "Aussengrenze aktuell") %>% 
   st_buffer(1000)
 
