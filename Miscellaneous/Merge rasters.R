@@ -9,16 +9,21 @@ library(pbapply)
 
 
 #' load in list of rasters:
-raster_files <- list.files("F:/DGM1_Bayern", pattern = "*.tif$", recursive = T, full.names = TRUE)
+raster_files <- list.files("D:/Sure_Ergebnisse_LDBV/True_Ortho", pattern = "*.tif$", recursive = T, full.names = TRUE)
 
 #' load in rasters:
-raster_list <- lapply(raster_files, rast)
+raster_list <- lapply(raster_files, function(raster) {
+  r <- terra::rast(raster)
+  crs(r) <- "EPSG:31468"
+  return(r)
+})
 
 #' convert to a spatial raster collection:
 raster_sprc <- sprc(raster_list)
 
 #' make mosaic from raster collection:
-terra::merge(raster_sprc, filename = paste0("F:/DGM1_Bayern/", "DGM1_Bayern_gesamt.tif"), overwrite = T)
+#terra::merge(raster_sprc, filename = paste0("C:/Users/NBW-Ebenbeck_J/Desktop/", "CIR_Mosaic_Sure.tif"), overwrite = T)
+terra::merge(raster_sprc, filename = paste0("C:/Users/NBW-Ebenbeck_J/Desktop/", "CIR_Mosaic_Sure.tif"), overwrite = T, wopt= list(datatype = "FLT4S", filetype = "GTiff", todisk = TRUE, gdal=c("COMPRESS=LZW", "TILED=YES")))
 
 
 
