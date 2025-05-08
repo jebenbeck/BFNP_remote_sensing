@@ -172,8 +172,8 @@ las_check(ctg)
 plot(ctg)
 
 #' perform the dtm creation:
-ctg_dtm <- catalog_dtm(ctg, output_path = "D:/5_1_dtms_2", filename_convention = "{ORIGINALFILENAME}_dtm", 
-                       parallel = T, n_cores = 4)
+ctg_dtm <- catalog_dtm(ctg, output_path = "D:/test", filename_convention = "{ORIGINALFILENAME}_dtm", mosaic_result = T,
+                       mosaic_name = "Mosaic", parallel = T, n_cores = 3)
 
 plot(ctg_dtm)
 

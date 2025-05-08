@@ -599,24 +599,23 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
   
   #' apply function to lascatalog:
   catalog_dtm = catalog_map(lascatalog, derive_dtm)
-  return(catalog_dtm)
   
   #' mosaic the resulting dataset if wanted:
   if (mosaic_result == TRUE) {
     message("starting mosaicing the resulting tiles...")
     #' list of all generated tif files:
-    tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
+    tif_files <- list.files(output_path, pattern = "\\.tif$", full.names = TRUE)
     #' read in all rasters into a spatial raster collection:
     raster_list <- sprc(tif_files)
     #' mosaic the files:
     raster_mosaic <- terra::mosaic(raster_list)
-    #' replace 0 with NA:
-    raster_mosaic_NA <- terra::subst(raster_mosaic, NA, 0)
     #' export to disk:
-    terra::writeRaster(raster_mosaic_NA, paste0(output_path, "/", mosaic_name, ".tif"), filetype = "GTiff", 
+    terra::writeRaster(raster_mosaic, paste0(output_path, "/", mosaic_name, ".tif"), filetype = "GTiff", 
                        overwrite = TRUE, wopt= list(datatype = "FLT4S", filetype = "GTiff", todisk = TRUE, 
                                                     gdal=c("COMPRESS=LZW", "TILED=YES")))
   }
+  
+  return(catalog_dtm)
 
 }
 
