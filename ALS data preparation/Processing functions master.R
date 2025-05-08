@@ -623,27 +623,18 @@ terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff"
 ## 12. Subset catalog --------------------------------------------------------------------------------------------------
 
 
-#' WIP! -> just a first draft
+#' Subset a catalog to an larger area. This function selects all tiles that overlap with a polygon and copies them into 
+#' a new directory. It is not possible to parallelize this function. 
 
-#' Subset a catalog to an larger area. This function selects all tiles that overlap with a polygon or a buffer around it
-#' and copies them into a new directory. It is not possible to parallelize this function. 
-
-
-ctg_normalized_dtm <- readALSLAScatalog("C:/ALS Data/6_normalized")
-
-plot(ctg_normalized_dtm, mapview =T)
-
-NP <- st_read ("F:/Basisdaten/Gebiete.gpkg", layer = "Overall area") %>% 
-  st_buffer(200)
-mapview(NP)
-ctg_subset <- catalog_intersect(ctg = ctg_normalized_dtm, NP)
-x <- st_as_sf(ctg_subset)
-x
-plot(ctg_subset, mapview =T)
-
-
-# Copy the files
-file.copy(from = x[["filename"]],
-          to = file.path("D:/7_subset_npbw", basename(x[["filename"]])),
-          overwrite = FALSE)  # Set to TRUE if you want to overwrite existing files
-
+catalog_subset <- function(lascatalog, polygon, output_path, overwrite_files = F){
+  
+  catalog_subset <- catalog_intersect(ctg = lascatalog, polygon) #' subset the catalog based on the polygon
+  catalog_subset_polygons <- st_as_sf(catalog_subset)                #' convert catalog to sf polygons to get the filenames
+  
+  #' Copy the files that are part of the subset to the new directory; 
+  file.copy(from = catalog_subset_polygons[["filename"]],
+            to = file.path(output_path, "/", basename(catalog_subset_polygons[["filename"]])),
+            overwrite = overwrite_files)  # Set to TRUE if you want to overwrite existing files
+  
+  return(catalog_subset)
+}
