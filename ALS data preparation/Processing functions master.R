@@ -142,7 +142,6 @@ catalog_statistics <- function(lascatalog, parallel = F, n_cores = 2){
   
   #' set catalog options:
   opt_select(lascatalog) <- "xy" #' read only xy because they are the only attributes of interest
-  opt_output_files(lascatalog) <- "" #' receive results in R environment 
   opt_independent_files(lascatalog) <- TRUE
   
   #' function to get point density of las data:
@@ -558,7 +557,7 @@ catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, file
   return(filtered_catalog)
 } 
 
-#' Other filtering methods:
+#' Other filtering methods that could still be implemented:
 
 #' 1) Remove extreme height values
 #las_filtered <- filter_poi(las, NormalizedHeight >= 0 & NormalizedHeight <= 60)
@@ -571,7 +570,10 @@ catalog_filter <- function(lascatalog, filter_mode = "filter", output_path, file
 ## 11. DTM creation ----------------------------------------------------------------------------------------------------
 
 
-catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention, parallel = FALSE, n_cores = 2){
+#' creates DTMs from a lascatalog. The dtms are exported to disc in tiles and optional, the results can be mosaiced. 
+
+catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_convention, mosaic_result = F, 
+                        mosaic_name = NULL, parallel = FALSE, n_cores = 2){
   
   #' apply options to lascatalog
   opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
@@ -598,25 +600,25 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
   #' apply function to lascatalog:
   catalog_dtm = catalog_map(lascatalog, derive_dtm)
   return(catalog_dtm)
+  
+  #' mosaic the resulting dataset if wanted:
+  if (mosaic_result == TRUE) {
+    message("starting mosaicing the resulting tiles...")
+    #' list of all generated tif files:
+    tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
+    #' read in all rasters into a spatial raster collection:
+    raster_list <- sprc(tif_files)
+    #' mosaic the files:
+    raster_mosaic <- terra::mosaic(raster_list)
+    #' replace 0 with NA:
+    raster_mosaic_NA <- terra::subst(raster_mosaic, NA, 0)
+    #' export to disk:
+    terra::writeRaster(raster_mosaic_NA, paste0(output_path, "/", mosaic_name, ".tif"), filetype = "GTiff", 
+                       overwrite = TRUE, wopt= list(datatype = "FLT4S", filetype = "GTiff", todisk = TRUE, 
+                                                    gdal=c("COMPRESS=LZW", "TILED=YES")))
+  }
+
 }
-
-
-# WIP! Option to mosaic the DTM, still has to be implemented into the function. 
-
-# 1. List all .tif files in the directory
-tif_files <- list.files("D:/5_dtms", pattern = "\\.tif$", full.names = TRUE)
-
-# 2. Read all rasters in a collection:
-rasters <- sprc(tif_files)
-
-# 3. Mosaic
-mosaic_raster <- terra::mosaic(rasters)
-mosaic_raster
-
-mosaic_raster_0 <- terra::subst(mosaic_raster, NA, 0)
-
-# Save output
-terra::writeRaster(mosaic_raster_0, "D:/dtm_mosaic_test.tif", filetype = "GTiff", overwrite = TRUE)
 
 
 
