@@ -28,14 +28,14 @@ db <- RemoteSensing$new("https://foresteye-server.de:8082", credentials)
 # ---- Get raster data ---- #
 
 #' Select raster database:
-ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2023_07_10m")
+ALS_metrics.db <- db$rasterdb("LiDAR_metrics_ALS_2019_2020_10m")
 
 #' define AOI (can be any spatial object)
 #' in this case, it is the full extent of the data
 AOI <- ALS_metrics.db$extent
 
 #' query rasterstack of ALS Metrics: 
-ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(5, 6))
+ALS_metrics.raster <- ALS_metrics.db$raster(ext = AOI, band = c(2,4,5))
 
 
 # ---- Postprocessing ---- #
@@ -46,8 +46,10 @@ ALS_metrics.rast <- rast(ALS_metrics.raster)
 #' reproject/assign coordinate system (if necessary):
 terra::crs(ALS_metrics.rast) <- ALS_metrics.db$geo_code
 
+names(ALS_metrics.rast) <- c("PR_0-200", "PR_0-50", "PR_0-140")
+
 #' export raster stack to disk:
-terra::writeRaster(ALS_metrics.rast, "C:/Users/jakob/Desktop/temp/ALS_metrics_2023_10m.tif", overwrite = T)
+terra::writeRaster(ALS_metrics.rast, "C:/Users/jakob/Desktop/ALS_metrics_2019_2020_10m.tif", overwrite = T)
 
 
 
