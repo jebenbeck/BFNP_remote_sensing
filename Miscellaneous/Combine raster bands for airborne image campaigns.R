@@ -39,40 +39,41 @@ library(parallel)
 
 ## Image processing ----------------------------------------------------------------------------------------------------
 
+
 #' function to process images:
 
 combine_images <- function(rgb_dir, cir_dir, output_dir, n_cores) {
 
-  #' List all RGB files
+  #' list all RGB files
   rgb_files <- list.files(rgb_dir, pattern = "*\\.tif$", full.names = TRUE)
   
   process_file <- function(rgb_path) {
   
-    # Extract the common suffix part of the filename
+    #' extract the common suffix part of the filename
     filename <- basename(rgb_path)
     suffix <- sub("^RGB_", "", filename)
     
-    # Construct corresponding CIR file path
+    #' construct corresponding CIR file path
     cir_path <- file.path(cir_dir, paste0("CIR_", suffix))
     
-    # Check if CIR file exists
+    #' check if CIR file exists
     if (!file.exists(cir_path)) {
       warning(paste("CIR file not found for:", filename))
       next
     }
     
-    # Read RGB and CIR images
+    #' read RGB and CIR images
     rgb_image <- rast(rgb_path)
     i_image <- rast(cir_path, lyrs = 1)  # Only use first layer from CIR
     
-    # Combine RGB and IR channels
+    #' combine RGB and IR channels
     rgbi_image <- c(rgb_image, i_image)
     names(rgbi_image) <- c("R", "G", "B", "I")
     
-    # Construct output path
+    #' construct output path
     output_path <- file.path(output_dir, paste0("RGBI_", suffix))
     
-    # Write to disk
+    #' write to disk
     writeRaster(rgbi_image, output_path, overwrite = TRUE, gdal = c("PHOTOMETRIC=MINISBLACK"))
     
     return(output_path)
