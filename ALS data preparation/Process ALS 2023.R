@@ -26,12 +26,12 @@ library(tidyverse)
 library(stringr)
 library(ggplot2)
 library(yardstick)
+library(bfnpALSprocessor)
 
 ### Required functions and scripts ----
 
 source("ALS data preparation/Processing functions master.R")
 
-### Set working directories ----
 
 ## 1. rename files -------------------------------------------------------------
 
@@ -103,10 +103,16 @@ ctg_dtm <- catalog_dtm(ctg, output_path = "G:/ALS 2023-07/dtm", filename_convent
 
 #' read in lascatalog:
 
-ctg <- readALSLAScatalog("G:/ALS 2023-07/pointclouds_classified")
+ctg <- readALSLAScatalog("G:/ALS 2023-07/pointclouds_normalized")
 
 las_check(ctg)
 plot(ctg, mapview = T)
+
+#' read in roi to where the dtm of the bavarian surveying administration is valid:
+polygon <- st_read()
+
+#' clip lascatalog to polygon: 
+ctg_subset <- clip_roi()
 
 #' perform the normalization with dtm:
 ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "G:/ALS 2023-07/dtm/ALS_2023-07_DTM_Mosaic.tif", 
