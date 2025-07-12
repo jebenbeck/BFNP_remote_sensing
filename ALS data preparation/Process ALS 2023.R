@@ -109,17 +109,17 @@ las_check(ctg)
 plot(ctg, mapview = T)
 
 #' read in roi to where the dtm of the bavarian surveying administration is valid:
-polygon <- st_read()
+polygon <- st_read("G:/misc/DTM1_NPV_coverage/NPV_polygon.shp")
 
 #' clip lascatalog to polygon: 
-ctg_subset <- clip_roi()
+ctg_subset <- clip_roi(ctg, polygon)
+plot(ctg_subset, mapview == T)
 
 #' perform the normalization with dtm:
-ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "G:/ALS 2023-07/dtm/ALS_2023-07_DTM_Mosaic.tif", 
-      output_path = "G:/ALS 2023-07/pointclouds_normalized", "{ORIGINALFILENAME}", parallel = T, n_cores = 10)
+ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "E:/UAV_data/other_data/DTM1_Bayern_NPV.tif", 
+      output_path = "G:/ALS 2023-07/pointclouds_normalized_new", "{ORIGINALFILENAME}", parallel = T, n_cores = 10)
 
 las_check(ctg)
 plot(ctg)
-
 
 
