@@ -466,9 +466,9 @@ catalog_normalize <- function(lascatalog, output_path, filename_convention, para
 catalog_normalize_dtm <- function(lascatalog, dtm_path, output_path, filename_convention, parallel = F, n_cores = 2){
   
   #' load dtm:
-  message("loading dtm...")
-  dtm <- terra::rast(dtm_path)
-  message("loading dtm finished")
+  #message("loading dtm...")
+  #dtm <- terra::rast(dtm_path)
+  #message("loading dtm finished")
   
   #' apply options to lascatalog
   opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
@@ -478,6 +478,7 @@ catalog_normalize_dtm <- function(lascatalog, dtm_path, output_path, filename_co
   
   #' function to normalize las data:
   normalize = function(las){
+    dtm <- terra::rast(dtm_path)
     #' normalize the data:
     las_normalized <- lidR::normalize_height(las, algorithm = dtm)
     #' Create a temporary variable to store the original Z values
@@ -584,9 +585,8 @@ catalog_dtm <- function(lascatalog, resolution = 1, output_path, filename_conven
   
   #' function to compute the dtm:
   derive_dtm = function(las){
-    #' normalize the data:
     dtm <- lidR::rasterize_terrain(las, res = resolution, algorithm = tin())
-    return(dtm)
+    #return(dtm)
   }
   
   #' plan parallel processing
