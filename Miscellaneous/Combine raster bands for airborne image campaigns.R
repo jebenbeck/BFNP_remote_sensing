@@ -74,7 +74,7 @@ combine_images <- function(rgb_dir, cir_dir, output_dir, n_cores) {
     output_path <- file.path(output_dir, paste0("RGBI_", suffix))
     
     #' write to disk
-    writeRaster(rgbi_image, output_path, overwrite = TRUE, gdal = c("PHOTOMETRIC=MINISBLACK"))
+    terra::writeRaster(rgbi_image, output_path, overwrite = TRUE, gdal = c("PHOTOMETRIC=MINISBLACK", "COMPRESS=LZW"))
     
     return(output_path)
   }
