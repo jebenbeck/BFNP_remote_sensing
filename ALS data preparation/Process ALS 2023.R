@@ -118,8 +118,10 @@ ctg_subset <- catalog_intersect(ctg, polygon)
 plot(ctg_subset)
 
 #' perform the normalization with dtm:
-catalog_normalize(lascatalog = ctg_subset, dtm = dtm, output_path = "G:/ALS 2023-07/pointclouds_normalized_new", 
+catalog_normalize(lascatalog = ctg_subset, algorithm = "dtm", dtm = dtm, output_path = "G:/ALS 2023-07/pointclouds_normalized_new", 
                   filename_convention = "{ORIGINALFILENAME}", parallel = T, n_cores = 8)
+catalog_normalize_dtm(lascatalog = ctg_subset, dtm_path = "E:/UAV_data/other_data/DTM1_Bayern_NPV.tif", output_path = "G:/ALS 2023-07/pointclouds_normalized_new", 
+                      filename_convention = "{ORIGINALFILENAME}", parallel = T, n_cores = 8)
 
 las_check(ctg)
 plot(ctg)
