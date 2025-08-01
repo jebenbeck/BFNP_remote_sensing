@@ -144,3 +144,17 @@ head(test@data)
 
 
 ## 3. Reproject to UTM32 -----------------------------------------------------------------------------------------------
+
+
+
+
+devtools::install_github("jebenbeck/bfnpALSprocessor")
+library(bfnpALSprocessor)
+library(lidR)
+library(sf)
+
+ctg <- readALSLAScatalog("H:/ALS 2012/pointclouds_laz")
+ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG::31468", output_epsg = "EPSG:25832", output_path = "H:/ALS 2012/pointclouds_UTM32", parallel = F)
+
+ctg_reprojected <- readALSLAScatalog("H:/ALS 2012/pointclouds_UTM32")
+bfnpALSprocessor::catalog_retile_template(ctg_reprojected, output_path = "H:/ALS 2012/pointclouds_retiled")
