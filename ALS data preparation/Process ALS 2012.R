@@ -23,6 +23,7 @@ library(mapview)
 library(future)
 library(tidyverse)
 library(pbapply)
+library(stringr)
 
 ### Required functions and scripts ----
 
@@ -117,30 +118,54 @@ parallel::stopCluster(cluster)
 
 
 
-## 2. Add number of returns argument ---------------------------------------------------------------------------
+## 2. Add number of returns to point clouds ----------------------------------------------------------------------------
 
 
-test <- readALSLAS("C:/Users/NBW-Ebenbeck_J/Desktop/spur00497.laz")
+ctg <- readALSLAScatalog("H:/ALS 2012/pointclouds_laz")
+plot(ctg, mapview = T)
 
-calculate_nReturns <- function(las_file) {
-  las_data <- las_file@data %>% 
-    select(ReturnNumber) %>% 
-    mutate(pulse_id = cumsum(ReturnNumber == 1)) %>%  #' create a unique pulse ID
-    group_by(pulse_id) %>%                            #' group by pulse ID 
-    mutate(NumberOfReturns = max(ReturnNumber)) %>%   #' assign max return number per pulse
-    ungroup() %>%
-    select(-pulse_id, -ReturnNumber) %>% 
-    unlist()
+#' Function to calculate the number of returns and add it to the las data
+catalog_add_nReturns <- function(lascatalog, output_path, parallel = T, n_cores = 2) {
   
-  #' add data to las file as argument:
-  las_file$NumberOfReturns <- las_data
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/{ORIGINALFILENAME}")
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_independent_files(lascatalog) <- TRUE
   
-  return(las_file)
+  add_nReturns <- function(las) {
+    
+    #' calculate number of returns:
+    nReturns <- las@data %>% 
+      select(ReturnNumber) %>% 
+      mutate(pulse_id = cumsum(ReturnNumber == 1)) %>%  #' create a unique pulse ID
+      group_by(pulse_id) %>%                            #' group by pulse ID 
+      mutate(NumberOfReturns = max(ReturnNumber)) %>%   #' assign max return number per pulse
+      ungroup() %>%
+      select(-pulse_id, -ReturnNumber) %>% 
+      unlist()
+    
+    #' add data to las file as argument:
+    las$NumberOfReturns <- nReturns
+    
+    return(las)
+  }
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' apply function to lascatalog:
+  new_catalog <- catalog_map(lascatalog, add_nReturns)
+  return(new_catalog)
+  
 }
 
-test_2 <- calculate_nReturns(test)
-
-head(test@data)
+#' apply function to script:
+ctg_nReturns <- catalog_add_nReturns(ctg, output_path = "H:/ALS 2012/pointclouds_nReturns")
 
 
 ## 3. Reproject to UTM32 -----------------------------------------------------------------------------------------------
