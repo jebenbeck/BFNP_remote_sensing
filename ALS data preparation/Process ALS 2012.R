@@ -24,6 +24,7 @@ library(future)
 library(tidyverse)
 library(pbapply)
 library(stringr)
+library(bfnpALSprocessor)
 
 ### Required functions and scripts ----
 
@@ -121,7 +122,7 @@ parallel::stopCluster(cluster)
 ## 2. Add number of returns to point clouds ----------------------------------------------------------------------------
 
 
-ctg <- readALSLAScatalog("H:/ALS 2012/pointclouds_laz")
+ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_laz")
 plot(ctg, mapview = T)
 
 #' Function to calculate the number of returns and add it to the las data
@@ -164,22 +165,50 @@ catalog_add_nReturns <- function(lascatalog, output_path, parallel = T, n_cores 
   
 }
 
-#' apply function to script:
-ctg_nReturns <- catalog_add_nReturns(ctg, output_path = "H:/ALS 2012/pointclouds_nReturns")
+#' apply function to catalog:
+ctg_nReturns <- catalog_add_nReturns(ctg, output_path = "G:/ALS 2012-06/pointclouds_nReturns", parallel = T, n_cores = 14)
+
+
+### Export polygons ----
+
+ctg_nReturns <- readALScatalog("G:/ALS 2012-06/pointclouds_nReturns")
+
+ctg_polygons <- bfnpALSprocessor::catalog_to_polygons(ctg_nReturns)
+st_write(ctg_polygons, "G:/ALS 2012-06/Tiles.gpkg")
+
+
+### Clip to testdata ----
+
+ctg_nReturns <- readALScatalog("G:/ALS 2012-06/pointclouds_full_nReturns")
+
+test_areas <- st_read("G:/misc/test_areas.gpkg", layer = "AOIs_GK")
+
+ctg_test_areas <- bfnpALSprocessor::catalog_clip_polygons(ctg_nReturns, input_epsg = "EPSG:31468", 
+        output_path =  "G:/ALS 2012-06/pointclouds_test_areas", filename_convention = "AOI_{name}", polygons = test_areas, parallel = T, n_cores = 4)
 
 
 ## 3. Reproject to UTM32 -----------------------------------------------------------------------------------------------
 
 
+ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_nReturns")
+
+ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG:31468", output_epsg = "EPSG:25832", 
+                                     output_path = "G:/ALS 2012-06/pointclouds_full_UTM32", parallel = T, n_cores = 10)
 
 
-devtools::install_github("jebenbeck/bfnpALSprocessor")
-library(bfnpALSprocessor)
-library(lidR)
-library(sf)
+## 4. Retile to UTM grid ----------------------------------------------------------------------------------------------------------
 
-ctg <- readALSLAScatalog("H:/ALS 2012/pointclouds_laz")
-ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG::31468", output_epsg = "EPSG:25832", output_path = "H:/ALS 2012/pointclouds_UTM32", parallel = F)
+ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_UTM32")
+ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "G:/ALS 2012-06/pointclouds_full_retiled")
 
-ctg_reprojected <- readALSLAScatalog("H:/ALS 2012/pointclouds_UTM32")
-bfnpALSprocessor::catalog_retile_template(ctg_reprojected, output_path = "H:/ALS 2012/pointclouds_retiled")
+
+## 5. Normalize ----------------------------------------------------------------------------------------------------------
+
+
+#' to-do
+
+## 6. create lax ----------------------------------------------------------------------------------------------------------
+
+ctg_retiled <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_retiled")
+lidR:::catalog_laxindex(ctg_retiled)
+
