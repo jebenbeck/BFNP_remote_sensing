@@ -25,6 +25,8 @@ library(tidyverse)
 library(pbapply)
 library(stringr)
 library(bfnpALSprocessor)
+library(RCSF)
+
 
 ### Required functions and scripts ----
 
@@ -196,18 +198,28 @@ ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG:31468", output_epsg
                                      output_path = "G:/ALS 2012-06/pointclouds_full_UTM32", parallel = T, n_cores = 10)
 
 
-## 4. Retile to UTM grid ----------------------------------------------------------------------------------------------------------
+## 4. Retile to UTM grid -----------------------------------------------------------------------------------------------
 
 ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_UTM32")
 ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "G:/ALS 2012-06/pointclouds_full_retiled")
 
 
-## 5. Normalize ----------------------------------------------------------------------------------------------------------
+
+## 5. Classify ---------------------------------------------------------------------------------------------------------
+
+ctg <- readALSLAScatalog("E:/pointclouds_full_retiled")
+plot(ctg)
+
+ctg_classified <- catalog_classify_ground(ctg, output_path = "E:/pointclouds_classified", parallel = T, n_cores = 6)
+plot(ctg_classified, mapview = T)
+
+## 6. Normalize --------------------------------------------------------------------------------------------------------
 
 
 #' to-do
 
-## 6. create lax ----------------------------------------------------------------------------------------------------------
+
+## 7. create lax -------------------------------------------------------------------------------------------------------
 
 ctg_retiled <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_retiled")
 lidR:::catalog_laxindex(ctg_retiled)
