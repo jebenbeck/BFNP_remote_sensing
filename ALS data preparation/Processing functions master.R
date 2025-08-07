@@ -397,26 +397,28 @@ aa_metrics <- function(gcp_data, export = F, filename, output_path){
 ## 8. Ground point classification --------------------------------------------------------------------------------------
 
 
-
-#' Make LAScatalog object:
-#ctg <- readLAScatalog("E:/02_Punktwolke")
-
-#' check LAScatalog vailidity:
-#las_check(ctg)
-
-#' plot LAScatalog:
-#plot(ctg, mapview = TRUE)
-
-#' define output location and file structure:
-#opt_output_files(ctg) <- "C:/ALS Data/Classification Output/{ORIGINALFILENAME}_classified"
-#opt_laz_compression(ctg) <- TRUE
-
-#' define parallel computation:
-#plan(multisession, workers = 2L)
-
-#' classify ground points:
-#out <- classify_ground(ctg, algorithm = csf(), last_returns = T)
-
+catalog_classify_ground <- function(lascatalog, algorithm = lidR::csf(), last_returns = T, output_path, 
+                                    filename_convention = "{ORIGINALFILENAME}", parallel = FALSE, n_cores =2) {
+  
+  #' apply options to lascatalog
+  opt_output_files(lascatalog) <- paste0(output_path, "/", filename_convention)
+  opt_laz_compression(lascatalog) <- TRUE
+  opt_chunk_buffer(lascatalog) <- 10
+  opt_chunk_size(lascatalog) <- 0
+  
+  #' plan parallel processing
+  if (parallel == TRUE) {
+    plan(multisession, workers = n_cores)
+    message(paste("Parallel processing will be used with", n_cores, "cores"))
+  } else {
+    warning("No parallel processing in use", call. = F, immediate. = T)
+  }
+  
+  #' classify lascatalog:
+  classified_catalog <- classify_ground(lascatalog, algorithm = algorithm, last_returns = last_returns)
+  return(classified_catalog)
+}
+  
 
 
 ## 9. Normalization ----------------------------------------------------------------------------------------------------
