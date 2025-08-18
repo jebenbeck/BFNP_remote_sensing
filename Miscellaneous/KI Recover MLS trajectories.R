@@ -4,8 +4,6 @@
 library(ggplot2)
 library(dplyr)
 
-input_txt <- "C:/ProgramData/LidarOs/projects/KI-Recover/g/fif_0109/tsc/ts/FIF_0109/traj.txt"
-
 #' Function:
 traj_process <- function(input_txt, plot_id) {
   
@@ -39,5 +37,5 @@ traj_process <- function(input_txt, plot_id) {
 
 }
 
-traj_process("C:/ProgramData/LidarOs/projects/KI-Recover/g/fif_0109/tsc/ts/FIF_0109/traj.txt",
-             plot_id = "FIF_0109")
+traj_process("C:/ProgramData/LidarOs/projects/KI-Recover/g/fif_01092/tsc/ts/FIF_01092/traj.txt",
+             plot_id = "FIF_01092")
