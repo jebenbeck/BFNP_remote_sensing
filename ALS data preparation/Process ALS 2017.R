@@ -193,26 +193,17 @@ las_check(ctg)
 #' perform the normalization with dtm:
 ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 1)
 
-
-ctg <- readALSLAScatalog("D:/7_subset_npbw")
+ctg <- readALSLAScatalog("G:/ALS 2017-06/pointclouds_full")
+ctg
 las_check(ctg)
 plot(ctg)
 
 
-# convert catalog to polygons:
-ctg_polygons <- catalog_to_polygons(ctg)
-
 #' calculate statistics on catalog:
-ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 3)
-
-#' merge the data: 
-ctg_polygons_stats <- left_join(ctg_polygons, ctg_stats) %>% 
-  relocate(c(Point.density, Area.covered), .after = Tile.name) %>% 
-  relocate(c(Tile.max.X, Tile.min.X, Tile.max.Y, Tile.min.Y), .after = Min.Z)
-ctg_polygons_stats
+ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
 
 #' export polygon file to geopackage:
-st_write(ctg_polygons_stats, dsn = paste0("D:/7_subset_npbw/", "Tiles.gpkg"), layer = "ALS_2017" , append = T)
+st_write(ctg_stats, dsn = "G:/misc/ALS_tiles.gpkg", layer = "ALS_2017-06", append = T)
 
 
 

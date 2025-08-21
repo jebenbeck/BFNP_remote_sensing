@@ -27,7 +27,6 @@ library(stringr)
 library(bfnpALSprocessor)
 library(RCSF)
 
-
 ### Required functions and scripts ----
 
 source("ALS data preparation/Processing functions master.R")
@@ -207,20 +206,30 @@ ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "G:/
 
 ## 5. Classify ---------------------------------------------------------------------------------------------------------
 
-ctg <- readALSLAScatalog("E:/pointclouds_full_retiled")
-plot(ctg)
+ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_retiled")
+plot(ctg, mapview = T)
 
-ctg_classified <- catalog_classify_ground(ctg, output_path = "E:/pointclouds_classified", parallel = T, n_cores = 6)
+ctg_classified <- catalog_classify_ground(ctg, output_path = "G:/ALS 2012-06/pointclouds_full_classified", parallel = T, n_cores = 6)
 plot(ctg_classified, mapview = T)
+
+#' export statistics:
+ctg_classified <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
+las_check(ctg_classified)
+plot(ctg_classified, mapview = T)
+
+ctg_statistics <- catalog_statistics(ctg_classified, parallel = T, n_cores = 18, spatial = T)
+ctg_statistics
+
+#' export polygon file to geopackage:
+st_write(ctg_statistics, dsn = "G:/misc/ALS_tiles.gpkg", layer = "ALS_2012-06", append = T)
+
 
 ## 6. Normalize --------------------------------------------------------------------------------------------------------
 
 
-#' to-do
-
 
 ## 7. create lax -------------------------------------------------------------------------------------------------------
 
-ctg_retiled <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_retiled")
+ctg_retiled <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
 lidR:::catalog_laxindex(ctg_retiled)
 
