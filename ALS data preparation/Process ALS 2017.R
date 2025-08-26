@@ -183,24 +183,15 @@ plot(ctg_dtm)
 ## 8. Normalization ----------------------------------------------------------------------------------------------------
 
 
-#' read in lascatalog:
-ctg <- readALSLAScatalog("D:/4_pointclouds_filtered")
-
-ctg
-plot(ctg)
-las_check(ctg)
-
-#' perform the normalization with dtm:
-ctg_normalized_dtm <- catalog_normalize_dtm(ctg, dtm_path = "D:/dtm_mosaic.tif", output_path = "D:/6_pointclouds_normalized", "{ORIGINALFILENAME}", parallel = F, n_cores = 1)
-
 ctg <- readALSLAScatalog("G:/ALS 2017-06/pointclouds_full")
-ctg
-las_check(ctg)
 plot(ctg)
 
+ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", output_path = "G:/ALS 2017-06/pointclouds_full_normalized",
+                                    parallel = T, n_cores = 6)
 
 #' calculate statistics on catalog:
 ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+ctg_stats
 
 #' export polygon file to geopackage:
 st_write(ctg_stats, dsn = "G:/misc/ALS_tiles.gpkg", layer = "ALS_2017-06", append = T)
