@@ -107,23 +107,10 @@ ctg <- readALSLAScatalog("G:/ALS 2023-07/pointclouds_classified")
 st_crs(ctg) <- "EPSG:25832"
 plot(ctg, mapview = T)
 
-#' read in roi to where the dtm of the bavarian surveying administration is valid:
-polygon <- st_read("G:/misc/DTM1_NPV_coverage/NPV_polygon.shp")
-
-#' read in dtm:
-dtm <- rast("E:/UAV_data/other_data/DTM1_Bayern_NPV.tif")
-
-#' clip lascatalog to polygon: 
-ctg_subset <- catalog_intersect(ctg, polygon)
-plot(ctg_subset)
-
 #' perform the normalization with dtm:
-catalog_normalize(lascatalog = ctg_subset, algorithm = "dtm", dtm = dtm, output_path = "G:/ALS 2023-07/pointclouds_normalized_new", 
-                  filename_convention = "{ORIGINALFILENAME}", parallel = T, n_cores = 8)
-catalog_normalize_dtm(lascatalog = ctg_subset, dtm_path = "E:/UAV_data/other_data/DTM1_Bayern_NPV.tif", output_path = "G:/ALS 2023-07/pointclouds_normalized_new", 
-                      filename_convention = "{ORIGINALFILENAME}", parallel = T, n_cores = 8)
+ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", output_path = "G:/ALS 2023-07/pointclouds_normalized_new",
+                                    parallel = T, n_cores = 6)
 
-las_check(ctg)
-plot(ctg)
-
-
+#' calculate statistics on catalog:
+ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+ctg_stats
