@@ -227,6 +227,11 @@ st_write(ctg_statistics, dsn = "G:/misc/ALS_tiles.gpkg", layer = "ALS_2012-06", 
 ## 6. Normalize --------------------------------------------------------------------------------------------------------
 
 
+ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
+
+ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", output_path = "G:/ALS 2012-06/pointclouds_full_normalized",
+                                    parallel = T, n_cores = 6)
+
 
 ## 7. create lax -------------------------------------------------------------------------------------------------------
 
