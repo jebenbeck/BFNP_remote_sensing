@@ -28,18 +28,12 @@ library(ggplot2)
 library(yardstick)
 library(bfnpALSprocessor)
 
-### Required functions and scripts ----
-
-source("ALS data preparation/Processing functions master.R")
-
 
 ## 1. rename files -------------------------------------------------------------
 
 
 #' rename all the files according to the new nomenclature:
 
-# Load required library
-library(stringr)
 
 # Set target directory
 

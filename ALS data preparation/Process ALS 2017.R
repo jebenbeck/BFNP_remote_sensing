@@ -27,16 +27,6 @@ library(stringr)
 library(ggplot2)
 library(yardstick)
 
-### Required functions and scripts ----
-
-source("ALS data preparation/Processing functions master.R")
-
-### Set working directories ----
-
-#' set wd of drive where the ALS 2017 database is stored. Must be changed when switching PCs
-
-path_drive <- "D:/"
-
 
 ## 1. Reproject to UTM32 -----------------------------------------------------------------------------------------------
 
