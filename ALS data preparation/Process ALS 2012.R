@@ -227,3 +227,13 @@ ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_pat
 ctg_retiled <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
 lidR:::catalog_laxindex(ctg_retiled)
 
+
+### Clip to testdata ----
+
+ctg_normalized <- readALScatalog("I:/01_point_clouds/ALS 2012-06/full_extent_final")
+plot(ctg_normalized)
+
+test_areas <- st_read("I:/misc/test_areas.gpkg", layer = "AOIs_UTM")
+
+ctg_test_areas <- bfnpALSprocessor::catalog_clip_polygons(ctg_normalized, input_epsg = "EPSG:25832", 
+                                                          output_path = "I:/01_point_clouds/ALS 2012-06/test_areas_normalized", filename_convention = "AOI_{name}", polygons = test_areas, parallel = T, n_cores = 4)
