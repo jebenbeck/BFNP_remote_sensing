@@ -106,7 +106,7 @@ pblapply(layer_names, calculate_metrics, out_dir = "E:/Single tree polygons 2017
 
 
 
-## 2. Rasterize metrics ------------------------------------------------------------------------------------------------
+## 2. Rasterize the tree type coverage per pixel -----------------------------------------------------------------------
 
 
 
@@ -163,21 +163,6 @@ for (k in 1:length(files)) {
   rm(c(poly, polygon, polygon_per_class, raster_per_class, raster_stack, reference_image_crop))
   
 }
-
-
-
-
-## 3. Mosaic rasterized metrics ----------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
 
 
 
