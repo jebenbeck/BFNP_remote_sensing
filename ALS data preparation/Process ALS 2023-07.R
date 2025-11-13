@@ -1,21 +1,11 @@
 ## Info ----------------------------------------------------------------------------------------------------------------
 
 
-#' Author: Jakob Ebenbeck
-#' Last updated: 2025
-#' Status: Work in progress 
-
-
-### Purpose of script ----
-
-
-### Notes ----
-
-
-### Required datasets ----
+#' Harmonizing the ALS 2023-07 dataset
 
 
 ### Required packages ----
+
 
 library(lidR)
 library(sf)
@@ -27,21 +17,21 @@ library(stringr)
 library(ggplot2)
 library(yardstick)
 library(bfnpALSprocessor)
+library(ggplot2)
 
 
-## 1. rename files -------------------------------------------------------------
+
+## 1. rename files to suit new tile structure --------------------------------------------------------------------------
 
 
 #' rename all the files according to the new nomenclature:
 
-
 # Set target directory
 
-target_dir <- "G:/ALS 2023-07/pointclouds_classified"
+target_dir <- "I:/01_point_clouds/ALS 2023-07/full_extent/00_original"
 
 # List all files in the directory
 files <- list.files(target_dir, pattern = "\\.laz$", full.names = TRUE)
-files
 
 # Function to generate new file name
 rename_file <- function(full_path) {
@@ -72,47 +62,56 @@ for (old_path in files) {
 }
 
 
-## 1. Classify ground points ---------------------------------------------------
 
-
-## 3. DTM creation -------------------------------------------------------------
-
-
+## 2. DTM creation -----------------------------------------------------------------------------------------------------
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("G:/ALS 2023-07/pointclouds_classified")
-las_check(ctg)
-plot(ctg, mapview = T)
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2023-07/full_extent/00_original")
 
 #' perform the dtm creation:
-ctg_dtm <- catalog_dtm(ctg, output_path = "G:/ALS 2023-07/dtm", filename_convention = "{ORIGINALFILENAME}_dtm", mosaic_result = T,
-                       mosaic_name = "ALS_2023-07_DTM_Mosaic", parallel = T, n_cores = 10)
+ctg_dtm <- catalog_dtm(ctg, output_path = "I:/02_dtms/ALS 2023-07", filename_convention = "{ORIGINALFILENAME}_dtm", 
+                       mosaic_result = T, mosaic_name = "ALS_2023-07_DTM_Mosaic", parallel = T, n_cores = 10)
 
 
 
+## 3. Normalization ----------------------------------------------------------------------------------------------------
 
-
-## 4. Normalization ----------------------------------------------------------------------------------------------------------
 
 #' read in lascatalog:
-
-ctg <- readALSLAScatalog("G:/ALS 2023-07/pointclouds_classified")
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2023-07/full_extent/00_original")
 st_crs(ctg) <- "EPSG:25832"
-plot(ctg, mapview = T)
 
-#' perform the normalization with dtm:
-ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", output_path = "G:/ALS 2023-07/pointclouds_normalized_new",
+#' perform the normalization with "best" dtm dataset:
+ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", 
+                                    output_path = "I:/01_point_clouds/ALS 2023-07/full_extent/01_normalized",
                                     parallel = T, n_cores = 6)
 
 
-## 5. Export footprint polygons ----------------------------------------------------------------------------------------
 
-ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2023-07/full_extent_final")
-ctg
+## 4. Export footprint polygons ----------------------------------------------------------------------------------------
 
+
+#' read in lascatalog
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2023-07/full_extent/01_normalized")
+
+#' create footprint polygons including tile statistics
 ctg_footprints <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
-ctg_footprints
 
 #' export polygon file to geopackage:
 st_write(ctg_footprints, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2023-07", append = T)
+
+
+
+## 5. Clip to test areas -----------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2023-07/full_extent/01_normalized")
+
+#' perform clip:
+test_areas <- st_read("I:/misc/test_areas.gpkg", layer = "AOIs_UTM")
+
+ctg_test_areas <- bfnpALSprocessor::catalog_clip_polygons(ctg_normalized, input_epsg = "EPSG:25832", 
+                                                          output_path = "I:/01_point_clouds/ALS 2023-07/test_areas", filename_convention = "AOI_{name}", 
+                                                          polygons = test_areas, parallel = T, n_cores = 8)
