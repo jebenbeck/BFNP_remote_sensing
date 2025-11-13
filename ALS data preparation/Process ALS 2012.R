@@ -1,18 +1,7 @@
 ## Info ----------------------------------------------------------------------------------------------------------------
 
 
-#' Author: Jakob Ebenbeck
-#' Last updated: 2025
-#' Status: Work in progress 
-
-
-### Purpose of script ----
-
-
-### Notes ----
-
-
-### Required datasets ----
+#' Harmonizing the ALS 2012-06 dataset
 
 
 ### Required packages ----
@@ -28,21 +17,17 @@ library(bfnpALSprocessor)
 library(RCSF)
 
 
-## 1. Convert ASCII files to LAS ---------------------------------------------------------------------------------------
+## 1. Convert ASCII files to LAZ ---------------------------------------------------------------------------------------
 
 
-#' Takes all LiDAR Point Clouds stored in ASC format in folder and converts them to LAZ
-#' Works specifically with the data acquired by ALS in 2012 in the BFNP.
-
+#' Take all LiDAR Point clouds stored in ASC format from folder and convert them to LAZ. Simultanously, all arguments are
+#' renamed to meet LAS standards. 
 
 #' Specify input and output paths:
-#input_dir <- paste0(path_drive, "ALS 2012/Punktwolken_asc/")
-input_dir <- "C:/Users/NBW-Ebenbeck_J/Desktop"
-#output_dir <- paste0(path_drive, "ALS 2012/Punktwolken_laz/")
-output_dir <- "C:/Users/NBW-Ebenbeck_J/Desktop"
+input_dir <- "I:/01_point_clouds/ALS 2012-06/full_extent/00_original_ascii"
+output_dir <- "I:/01_point_clouds/ALS 2012-06/full_extent/01_original_laz"
 
-
-#' number of files to process (only for testing)
+#' number of files to process (optinal - only for testing)
 n_files <- 0
 
 #' Create the output directory if it doesn't exist
@@ -112,8 +97,10 @@ parallel::stopCluster(cluster)
 ## 2. Add number of returns to point clouds ----------------------------------------------------------------------------
 
 
-ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_laz")
-plot(ctg, mapview = T)
+#' as no argument "number of returns" is available but needed, this can be calculated from the data.
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/01_original_laz")
 
 #' Function to calculate the number of returns and add it to the las data
 catalog_add_nReturns <- function(lascatalog, output_path, parallel = T, n_cores = 2) {
@@ -156,84 +143,106 @@ catalog_add_nReturns <- function(lascatalog, output_path, parallel = T, n_cores 
 }
 
 #' apply function to catalog:
-ctg_nReturns <- catalog_add_nReturns(ctg, output_path = "G:/ALS 2012-06/pointclouds_nReturns", parallel = T, n_cores = 14)
+ctg_nReturns <- catalog_add_nReturns(ctg, output_path = "I:/01_point_clouds/ALS 2012-06/full_extent/02_nReturns", 
+                                     parallel = T, n_cores = 14)
 
-
-### Export polygons ----
-
-ctg_nReturns <- readALScatalog("G:/ALS 2012-06/pointclouds_nReturns")
-
-ctg_polygons <- bfnpALSprocessor::catalog_to_polygons(ctg_nReturns)
-st_write(ctg_polygons, "G:/ALS 2012-06/Tiles.gpkg")
-
-
-### Clip to testdata ----
-
-ctg_nReturns <- readALScatalog("G:/ALS 2012-06/pointclouds_full_nReturns")
-
-test_areas <- st_read("G:/misc/test_areas.gpkg", layer = "AOIs_GK")
-
-ctg_test_areas <- bfnpALSprocessor::catalog_clip_polygons(ctg_nReturns, input_epsg = "EPSG:31468", 
-        output_path =  "G:/ALS 2012-06/pointclouds_test_areas", filename_convention = "AOI_{name}", polygons = test_areas, parallel = T, n_cores = 4)
 
 
 ## 3. Reproject to UTM32 -----------------------------------------------------------------------------------------------
 
 
-ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_nReturns")
+#' the data is stored in GK4 and needs to be reprojected to UTM32
 
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/02_nReturns")
+
+#' reproject the data:
 ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG:31468", output_epsg = "EPSG:25832", 
-                                     output_path = "G:/ALS 2012-06/pointclouds_full_UTM32", parallel = T, n_cores = 10)
+                                     output_path = "I:/01_point_clouds/ALS 2012-06/full_extent/03_UTM32", 
+                                     parallel = T, n_cores = 10)
 
 
 ## 4. Retile to UTM grid -----------------------------------------------------------------------------------------------
 
-ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_UTM32")
-ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "G:/ALS 2012-06/pointclouds_full_retiled")
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/03_UTM32")
+
+#' retile the data:
+ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "I:/01_point_clouds/ALS 2012-06/full_extent/04_retiled")
+
+#' create lax files:
+lidR:::catalog_laxindex(ctg_retiled)
 
 
+## 5. Classify ground points -------------------------------------------------------------------------------------------
 
-## 5. Classify ---------------------------------------------------------------------------------------------------------
 
-ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_retiled")
-plot(ctg, mapview = T)
+#' read in lascatalog: 
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/04_retiled")
 
-ctg_classified <- catalog_classify_ground(ctg, output_path = "G:/ALS 2012-06/pointclouds_full_classified", parallel = T, n_cores = 6)
-plot(ctg_classified, mapview = T)
+#' classify ground points:
+ctg_classified <- catalog_classify_ground(ctg, output_path = "I:/01_point_clouds/ALS 2012-06/full_extent/05_classified",
+                                          parallel = T, n_cores = 6)
 
-#' export statistics:
-ctg_classified <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
-las_check(ctg_classified)
-plot(ctg_classified, mapview = T)
 
-ctg_statistics <- catalog_statistics(ctg_classified, parallel = T, n_cores = 18, spatial = T)
-ctg_statistics
-
-#' export polygon file to geopackage:
-st_write(ctg_statistics, dsn = "G:/misc/ALS_tiles.gpkg", layer = "ALS_2012-06", append = T)
+#' create lax files:
+lidR:::catalog_laxindex(ctg_classified)
 
 
 ## 6. Normalize --------------------------------------------------------------------------------------------------------
 
 
-ctg <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/05_classified")
 
-ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", output_path = "G:/ALS 2012-06/pointclouds_full_normalized",
+#' normalize the data using the best available DTM for the area (combination from different datasets)
+ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", 
+                                    dtm_path = "I:/01_point_clouds/ALS 2012-06/full_extent/06_normalized",
                                     parallel = T, n_cores = 6)
 
 
-## 7. create lax -------------------------------------------------------------------------------------------------------
-
-ctg_retiled <- readALSLAScatalog("G:/ALS 2012-06/pointclouds_full_classified")
-lidR:::catalog_laxindex(ctg_retiled)
+#' create lax files:
+lidR:::catalog_laxindex(ctg_normalized)
 
 
-### Clip to testdata ----
+## 7. Outlier filtering ------------------------------------------------------------------------------------------------
 
-ctg_normalized <- readALScatalog("I:/01_point_clouds/ALS 2012-06/full_extent_final")
-plot(ctg_normalized)
+
+#' read in lascatalog:
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/06_normalized")
+
+#' filter outliers:
+ctg_filtered <- bfnpALSprocessor::catalog_filter(ctg, filter_noise = T, filter_heights = F, filter_mode = "remove" , 
+                output_path = "I:/01_point_clouds/ALS 2012-06/full_extent/07_filtered", parallel = T, n_cores = 8)
+
+#' create lax files:
+lidR:::catalog_laxindex(ctg_filtered)
+
+
+
+## 8. Export footprint polygons ----------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/07_filtered")
+
+#' calculate footprint polygons with statistics
+ctg_statistics <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+
+#' export polygon file to geopackage:
+st_write(ctg_statistics, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2012-06", append = T)
+
+
+
+## 9. Clip to test areas -----------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/07_filtered")
 
 test_areas <- st_read("I:/misc/test_areas.gpkg", layer = "AOIs_UTM")
 
 ctg_test_areas <- bfnpALSprocessor::catalog_clip_polygons(ctg_normalized, input_epsg = "EPSG:25832", 
-                                                          output_path = "I:/01_point_clouds/ALS 2012-06/test_areas_normalized", filename_convention = "AOI_{name}", polygons = test_areas, parallel = T, n_cores = 4)
+                  output_path = "I:/01_point_clouds/ALS 2012-06/test_areas/04_filtered", filename_convention = "AOI_{name}", 
+                  polygons = test_areas, parallel = T, n_cores = 8)
