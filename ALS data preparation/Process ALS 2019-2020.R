@@ -55,14 +55,18 @@ plot(ctg_retiled, mapview = T)
 ctg_normalized <- catalog_normalize(ctg_retiled, algorithm = "dtm", dtm_path = "G:/02_dtms/ALS 2019-2020/DTM1_Bayern_NPV_5km.tif", 
                                     output_path = "G:/01_point_clouds/ALS 2019-2020/full_extent_normalized", parallel = T, n_cores = 12)
 
-## 3. Finalizing dataset -----------------------------------------------------------------------------------------------
+## 3. Export footprint polygons ----------------------------------------------------------------------------------------
 
-#' generate footprint polygons:
-ctg_polygons <- catalog_to_polygons(ctg_retiled)
-ctg_polygons
+#' import lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2019-2020/full_extent_normalized")
+
+#' make footprint polygons including statistics:
+ctg_statistics <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+ctg_statistics
 
 #' export polygon file to geopackage:
-st_write(ctg_polygons, dsn = "G:/ALS 2007/ALS_tiles.gpkg", layer = "ALS_2007", append = T)
+st_write(ctg_statistics, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2019-2020", append = T)
+
 
 
 

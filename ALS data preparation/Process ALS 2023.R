@@ -105,6 +105,14 @@ plot(ctg, mapview = T)
 ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", dtm_path = "G:/misc/DTM1_combined_17_19_23.tif", output_path = "G:/ALS 2023-07/pointclouds_normalized_new",
                                     parallel = T, n_cores = 6)
 
-#' calculate statistics on catalog:
-ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
-ctg_stats
+
+## 5. Export footprint polygons ----------------------------------------------------------------------------------------
+
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2023-07/full_extent_final")
+ctg
+
+ctg_footprints <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+ctg_footprints
+
+#' export polygon file to geopackage:
+st_write(ctg_footprints, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2023-07", append = T)
