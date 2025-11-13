@@ -83,6 +83,7 @@ ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2017-06/full_extent/03_filtered
 #' normalize the data using the best available DTM for the area (combination from different datasets)
 ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", 
                                     dtm_path = "I:/misc/DTM1_combined_17_19_23.tif",
+                                    output_path = "I:/01_point_clouds/ALS 2017-06/full_extent/04_normalized",
                                     parallel = T, n_cores = 6)
 
 
@@ -95,7 +96,7 @@ lidR:::catalog_laxindex(ctg_normalized)
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2017-06/full_extent/03_filtered")
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2017-06/full_extent/04_normalized")
 
 #' calculate footprint polygons with statistics
 ctg_statistics <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
@@ -109,7 +110,7 @@ st_write(ctg_statistics, dsn = "G:/misc/ALS_tiles.gpkg", layer = "ALS_2017-06", 
 
 
 #' read in lascatalog:
-ctg <- readALScatalog("I:/01_point_clouds/ALS 2017-06/full_extent/03_filtered")
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2017-06/full_extent/04_normalized")
 
 test_areas <- st_read("I:/misc/test_areas.gpkg", layer = "AOIs_UTM")
 
