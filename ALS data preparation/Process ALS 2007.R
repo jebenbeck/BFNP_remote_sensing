@@ -77,3 +77,12 @@ ctg_AOIs <- catalog_clip_polygons(ctg_filtered, input_epsg = "EPSG:25832", outpu
                                   filename_convention = "AOI_{name}", polygons = test_areas)
 
 
+## 4. Export footprint polygons ----------------------------------------------------------------------------------------
+
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent_final")
+
+#' calculate statistics on catalog:
+ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+
+#' export polygon file to geopackage:
+st_write(ctg_stats, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2008-2009", append = T)
