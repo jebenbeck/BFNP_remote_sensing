@@ -1,18 +1,7 @@
 ## Info ----------------------------------------------------------------------------------------------------------------
 
 
-#' Author: Jakob Ebenbeck
-#' Last updated: 2025
-#' Status: Work in progress 
-
-
-### Purpose of script ----
-
-
-### Notes ----
-
-
-### Required datasets ----
+#' Harmonizing the ALS 2008-2009 dataset from the LDBV
 
 
 ### Required packages ----
@@ -33,56 +22,76 @@ library(yardstick)
 ## 1. Retile the data --------------------------------------------------------------------------------------------------
 
 
-#' Catalog is retiled to assure filename consistency between the different datasets
-ctg <- readALSLAScatalog("G:/ALS 2007/pointclouds_full_original")
-ctg
-las_check(ctg)
-plot(ctg, mapview = T)
+#' las data as delivered by the LDBV should be already in the correct format but is retiled to assure filename consistency 
+#' between the different datasets
 
-ctg_retiled <- catalog_retile_template(lascatalog = ctg, output_path = "G:/ALS 2007/pointclouds_full_retiled")
-ctg_retiled <- readALScatalog("G:/ALS 2007/pointclouds_full_retiled")
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent/01_original")
 
-#' generate footprint polygons:
-ctg_polygons <- catalog_to_polygons(ctg_retiled)
-ctg_polygons
+#' retile using template:
+ctg_retiled <- catalog_retile_template(ctg, output_path = "I:/01_point_clouds/ALS 2008-2009/full_extent/02_retiled")
 
-#' export polygon file to geopackage:
-st_write(ctg_polygons, dsn = "G:/ALS 2007/ALS_tiles.gpkg", layer = "ALS_2007", append = T)
+#' create lax files:
+lidR:::catalog_laxindex(ctg_retiled)
+
 
 
 ## 2. Normalize --------------------------------------------------------------------------------------------------------
 
-ctg_normalized <- catalog_normalize(ctg_retiled, algorithm = "dtm", dtm_path = "G:/ALS 2007/dgm1_utm.tif", 
-                                    output_path = "G:/ALS 2007/pointclouds_full_normalized", parallel = T, n_cores = 12)
 
+#' read in lascatalog:
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent/01_retiled")
 
-## 3. Clip AOIs --------------------------------------------------------------------------------------------------------
+#' normalize the data using the best available DTM for the area (LDBV DTM1 from this dataset):
+ctg_normalized <- catalog_normalize(ctg, algorithm = "dtm", dtm_path = "I:/02_dtms/ALS 2008-2009/dgm1_utm.tif", 
+                                    output_path = "I:/01_point_clouds/ALS 2008-2009/full_extent/03_normalized", 
+                                    parallel = T, n_cores = 12)
 
+#' create lax files:
+lidR:::catalog_laxindex(ctg_normalized)
 
-#' read AOIs:
-test_areas <- st_read("G:/misc/test_areas.gpkg", layer = "AOIs_UTM")
-mapview(test_areas)
-
-ctg_AOIs <- catalog_clip_polygons(ctg_normalized, input_epsg = "EPSG:25832", output_path = "G:/ALS 2007/pointclouds_test_AOIs/normalized",
-                                        filename_convention = "AOI_{name}", polygons = test_areas)
 
 
 ## 3. Filter outliers --------------------------------------------------------------------------------------------------
 
-ctg_filtered <- catalog_filter(ctg_normalized, filter_mode = "remove", output_path = "G:/ALS 2007/pointclouds_full_filtered",
+
+#' read in lascatalog:
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent/03_normalized")
+
+
+#' filter outliers:
+ctg_filtered <- catalog_filter(ctg, filter_noise = T, filter_heights = F, filter_mode = "remove", 
+                               output_path = "I:/01_point_clouds/ALS 2008-2009/full_extent/04_filtered",
                                parallel = T, n_cores = 12)
 
+#' create lax files:
+lidR:::catalog_laxindex(ctg_filtered)
 
-ctg_AOIs <- catalog_clip_polygons(ctg_filtered, input_epsg = "EPSG:25832", output_path = "G:/ALS 2007/pointclouds_test_AOIs/filtered_2",
-                                  filename_convention = "AOI_{name}", polygons = test_areas)
 
 
 ## 4. Export footprint polygons ----------------------------------------------------------------------------------------
 
-ctg <- readALScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent_final")
 
-#' calculate statistics on catalog:
-ctg_stats <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
+#' read in lascatalog:
+ctg <- readALScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent/04_filtered")
+
+#' calculate footprint polygons with statistics
+ctg_statistics <- catalog_statistics(ctg, parallel = T, n_cores = 18, spatial = T)
 
 #' export polygon file to geopackage:
-st_write(ctg_stats, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2008-2009", append = T)
+st_write(ctg_statistics, dsn = "I:/misc/ALS_tiles.gpkg", layer = "ALS 2008-2009", append = T)
+
+
+
+## 5. Clip to test areas -----------------------------------------------------------------------------------------------
+
+
+#' read in lascatalog:
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2008-2009/full_extent/04_filtered")
+
+#' read in test areas:
+test_areas <- st_read("G:/misc/test_areas.gpkg", layer = "AOIs_UTM")
+
+#' clip to test areas:
+ctg_AOIs <- catalog_clip_polygons(ctg, input_epsg = "EPSG:25832", output_path = "I:/01_point_clouds/ALS 2008-2009/test_areas/02_filtered",
+                                  filename_convention = "AOI_{name}", polygons = test_areas)
