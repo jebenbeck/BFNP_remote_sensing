@@ -199,7 +199,7 @@ ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2012-06/full_extent/05_classifi
 
 #' normalize the data using the best available DTM for the area (combination from different datasets)
 ctg_normalized <- catalog_normalize(lascatalog = ctg, algorithm = "dtm", 
-                                    dtm_path = "I:/01_point_clouds/ALS 2012-06/full_extent/06_normalized",
+                                    dtm_path = "I:/misc/DTM1_combined_17_19_23.tif",
                                     parallel = T, n_cores = 6)
 
 
