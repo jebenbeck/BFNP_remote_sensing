@@ -16,7 +16,6 @@ library(bfnpALSprocessor)
 library(RCSF)
 
 
-
 ## 1. Convert ASCII files to LAZ ---------------------------------------------------------------------------------------
 
 
@@ -81,7 +80,7 @@ convert_asc_to_laz_ALS2002 <- function(input_path, output_path, n_files, return_
   #' Use pbapply for processing all ASC files in parallel:
   cluster <- parallel::makeCluster(n_cores)
 
-  parallel::clusterExport(cluster, varlist = c("process_asc_file", "readLAS", "writeLAS", "basename", "read.table", "LAS",
+  parallel::clusterExport(cluster, varlist = c("readLAS", "writeLAS", "basename", "read.table", "LAS",
                                                "colnames", "st_crs"))
   parallel::clusterEvalQ(cluster, library(lidR)) # Load lidR on all nodes
   parallel::clusterEvalQ(cluster, library(tidyverse)) # Load tidyverse on all nodes
@@ -96,13 +95,14 @@ convert_asc_to_laz_ALS2002 <- function(input_path, output_path, n_files, return_
 
 
 # convert last pulse data:
-convert_asc_to_laz_ALS2002(input_path = "D:/ALS 2002-09/D/last", output_path = "D:/ALS 2002-09/D/laz", n_files = 0,
-                           return_number = 2, n_cores = 2)
+convert_asc_to_laz_ALS2002(input_path = "I:/01_point_clouds/ALS 2002-09/00_original_data_asc/Gebiet C-E/last", 
+                           output_path = "I:/01_point_clouds/ALS 2002-09/01_original_data_laz", n_files = 0,
+                           return_number = 2, n_cores = 14)
 
 # convert first pulse data:
-convert_asc_to_laz_ALS2002(input_path = "D:/ALS 2002-09/D/first", output_path = "D:/ALS 2002-09/D/laz", n_files = 0,
-                           return_number = 1, n_cores = 2)
-
+convert_asc_to_laz_ALS2002(input_path = "I:/01_point_clouds/ALS 2002-09/00_original_data_asc/Gebiet C-E/first", 
+                           output_path = "I:/01_point_clouds/ALS 2002-09/01_original_data_laz", n_files = 0,
+                           return_number = 1, n_cores = 14)
 
 
 ## 2. Convert to UTM 32 ------------------------------------------------------------------------------------------------
@@ -111,23 +111,26 @@ convert_asc_to_laz_ALS2002(input_path = "D:/ALS 2002-09/D/first", output_path = 
 #' the data is stored in GK4 and needs to be reprojected to UTM32
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("D:/ALS 2002-09/D/laz")
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2002-09/01_original_data_laz")
 
 #' reproject the data:
 ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG:31468", output_epsg = "EPSG:25832",
-                                     output_path = "D:/ALS 2002-09/D/laz_UTM32",
-                                     parallel = F, n_cores = 10)
+                                     output_path = "I:/01_point_clouds/ALS 2002-09/02_original_data_UTM32",
+                                     parallel = T, n_cores = 15)
 
 
+plot(ctg_reprojected, mapview = T)
 
 ## 3. Retile to UTM grid -----------------------------------------------------------------------------------------------
 
 
 #' read in lascatalog:
-ctg <- readALSLAScatalog("D:/ALS 2002-09/D/laz_UTM32")
+ctg <- readALSLAScatalog("I:/01_point_clouds/ALS 2002-09/02_original_data_UTM32")
+crs(ctg) <- "EPSG:25832"
+plot(ctg, mapview = T)
 
 #' retile the data:
-ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "D:/ALS 2002-09/D/laz_UTM32_retiled")
+ctg_retiled <- bfnpALSprocessor::catalog_retile_template(ctg, output_path = "I:/01_point_clouds/ALS 2002-09/03_laz_retiled")
 plot(ctg_retiled, mapview = T)
 
 #' create lax files:
