@@ -16,6 +16,7 @@ library(bfnpALSprocessor)
 library(RCSF)
 
 
+
 ## 1. Convert ASCII files to LAZ ---------------------------------------------------------------------------------------
 
 
@@ -104,14 +105,7 @@ convert_asc_to_laz_ALS2002(input_path = "D:/ALS 2002-09/D/first", output_path = 
 
 
 
-
-test_ctg <- readALSLAScatalog("D:/ALS 2002-09/D/laz")
-plot(test_ctg, mapview = T)
-
-
-
 ## 2. Convert to UTM 32 ------------------------------------------------------------------------------------------------
-
 
 
 #' the data is stored in GK4 and needs to be reprojected to UTM32
@@ -120,12 +114,14 @@ plot(test_ctg, mapview = T)
 ctg <- readALSLAScatalog("D:/ALS 2002-09/D/laz")
 
 #' reproject the data:
-ctg_reprojected <- catalog_reproject(test_ctg, input_epsg = "EPSG:31468", output_epsg = "EPSG:25832",
+ctg_reprojected <- catalog_reproject(ctg, input_epsg = "EPSG:31468", output_epsg = "EPSG:25832",
                                      output_path = "D:/ALS 2002-09/D/laz_UTM32",
                                      parallel = F, n_cores = 10)
 
 
-## 4. Retile to UTM grid -----------------------------------------------------------------------------------------------
+
+## 3. Retile to UTM grid -----------------------------------------------------------------------------------------------
+
 
 #' read in lascatalog:
 ctg <- readALSLAScatalog("D:/ALS 2002-09/D/laz_UTM32")
